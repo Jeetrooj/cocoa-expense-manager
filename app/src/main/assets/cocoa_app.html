@@ -1,0 +1,3020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Cocoa — Managing Expenses by Cocoa</title>
+  <meta name="theme-color" content="#2B1710" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Cocoa" />
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Cocoa — Managing Expenses by Cocoa","short_name":"Cocoa","start_url":".","display":"standalone","background_color":"#2B1710","theme_color":"#2B1710"}' />
+
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-warm-white: #FFFDF9;
+      --surface-alabaster: #F7EFE6;
+      --card-espresso: #2B1710;
+      --accent-cocoa: #5D3A1A;
+      --accent-caramel: #8B5A2B;
+      --border-hairline: #E5D5C5;
+      --text-espresso: #23120B;
+      --text-mocha: #6E5041;
+      --text-white: #FFFFFF;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background-color: var(--bg-warm-white);
+      color: var(--text-espresso);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    .font-display {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .neo-card {
+      background-color: var(--surface-alabaster);
+      border: 1.5px solid var(--border-hairline);
+      box-shadow: 0 4px 0 rgba(43, 23, 16, 0.08), 0 8px 20px rgba(43, 23, 16, 0.04);
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+    }
+    .neo-card-white {
+      background-color: #FFFFFF;
+      border: 1.5px solid var(--border-hairline);
+      box-shadow: 0 3px 0 rgba(93, 58, 26, 0.09), 0 6px 14px rgba(43, 23, 16, 0.04);
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease;
+    }
+    .neo-card-espresso {
+      background: linear-gradient(145deg, #2B1710 0%, #3C2117 60%, #23120B 100%);
+      border: 1.5px solid #4A2C1D;
+      box-shadow: 0 8px 0 #160B07, 0 14px 28px rgba(43, 23, 16, 0.28);
+      color: #FFFFFF;
+    }
+    .cocoa-pill-scroll::-webkit-scrollbar {
+      height: 4px;
+    }
+    .cocoa-pill-scroll::-webkit-scrollbar-track {
+      background: #F7EFE6;
+    }
+    .cocoa-pill-scroll::-webkit-scrollbar-thumb {
+      background: #D0B8A0;
+      border-radius: 9999px;
+    }
+    @keyframes pulseSoft {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+    .animate-cocoa-pulse {
+      animation: pulseSoft 2.4s infinite ease-in-out;
+    }
+    @keyframes alertPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.78; transform: scale(1.03); }
+    }
+    .animate-alert-pulse {
+      animation: alertPulse 1.4s infinite ease-in-out;
+    }
+    @keyframes chocoRipple {
+      0% { background-color: #D1FAE5; transform: scale(0.98); }
+      50% { background-color: #A7F3D0; transform: scale(1.01); }
+      100% { background-color: #FFFFFF; transform: scale(1); }
+    }
+    .choco-ripple-anim {
+      animation: chocoRipple 0.55s ease-out;
+    }
+    .modal-backdrop {
+      background-color: rgba(35, 18, 11, 0.68);
+      backdrop-filter: blur(6px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-24">
+
+  <!-- TOP HAPTIC & TOAST FEEDBACK BAR -->
+  <div id="hapticToast" class="fixed top-3 right-3 z-50 hidden items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-xl border border-[#4A2C1D] bg-[#2B1710] text-white text-xs font-medium transition-all duration-300">
+    <span id="hapticDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+    <span id="hapticText">Haptic: CLOCK_TICK</span>
+  </div>
+
+  <!-- ONBOARDING & SPLASH OVERLAY -->
+  <div id="onboardingOverlay" class="fixed inset-0 z-40 bg-[#2B1710] text-white flex flex-col justify-between p-6 overflow-y-auto hidden">
+    <div class="max-w-lg mx-auto w-full pt-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8B5A2B] to-[#5D3A1A] border-2 border-[#E5D5C5]/30 flex items-center justify-center shadow-lg animate-cocoa-pulse">
+            <span class="text-2xl font-extrabold font-mono-num text-amber-300">₹</span>
+          </div>
+          <div>
+            <h1 class="text-3xl font-extrabold font-display tracking-tight text-white">Cocoa</h1>
+            <p class="text-xs font-semibold uppercase tracking-widest text-amber-300">Managing Expenses by Cocoa</p>
+          </div>
+        </div>
+        <span class="px-3 py-1 rounded-full text-[11px] font-semibold bg-[#5D3A1A] text-amber-200 border border-amber-400/30">100% Offline-First</span>
+      </div>
+
+      <div class="mt-8 space-y-4">
+        <div class="p-4 rounded-2xl bg-[#3B2117] border border-[#5D3A1A]">
+          <div class="flex items-center gap-2.5 mb-1.5">
+            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-sm">1</span>
+            <h3 class="font-bold text-sm text-white">Zero Pre-Populated History & 100% Local Privacy</h3>
+          </div>
+          <p class="text-xs text-[#E5D5C5] leading-relaxed">
+            Cocoa starts with a clean, empty local database. Zero telemetry, zero cloud servers, and zero external transmissions. Your financial vault lives strictly on your device.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-[#3B2117] border border-[#5D3A1A]">
+          <div class="flex items-center gap-2.5 mb-1.5">
+            <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-sm">2</span>
+            <h3 class="font-bold text-sm text-white">Dual Sub-Budget Live Envelopes (Fuel Liters & Pocket Money)</h3>
+          </div>
+          <p class="text-xs text-[#E5D5C5] leading-relaxed">
+            Every Monthly Vault isolates its own Main Ledger alongside linked live gauges for <strong>Fuel in Liters (L)</strong> and <strong>Pocket Money Daily Micro-Spends</strong>, plus People Lending & Split Repayments.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-[#3B2117] border border-[#5D3A1A]">
+          <div class="flex items-center gap-2.5 mb-1.5">
+            <span class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-300 flex items-center justify-center font-bold text-sm">3</span>
+            <h3 class="font-bold text-sm text-white">Column-Shift Resilient Multi-Sheet Excel (.xlsx) Importer</h3>
+          </div>
+          <p class="text-xs text-[#E5D5C5] leading-relaxed">
+            Upload your multi-tab Excel tracker anytime. Cocoa prioritizes Worksheet Tab Names over copy-pasted internal headers, dynamically scans for shifted columns (Col B vs Col A), and normalizes categories & bank tags (`BOI`, `KMB`, `PNB`, `slice`, `Cash`).
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-lg mx-auto w-full pt-6 pb-4 space-y-4">
+      <div class="p-3.5 rounded-xl bg-[#1F100B] border border-[#4A2C1D] space-y-2">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input id="legalCheckInput" type="checkbox" class="mt-1 w-4 h-4 accent-[#10B981] rounded" />
+          <span class="text-xs text-[#F7EFE6] leading-snug">
+            I have reviewed and accept the offline <button type="button" id="openLegalFromOnboardBtn" class="underline text-amber-300 font-semibold">Terms of Use & Privacy Policy</button> of <strong>Cocoa — Managing Expenses by Cocoa</strong>.
+          </span>
+        </label>
+      </div>
+
+      <button id="enterCocoaVaultBtn" type="button" disabled class="w-full py-3.5 rounded-2xl font-display font-bold text-sm bg-[#8B5A2B] text-white opacity-50 cursor-not-allowed transition-all shadow-lg">
+        Enter Clean Cocoa Vault
+      </button>
+    </div>
+  </div>
+
+  <!-- STICKY TOP APP BAR -->
+  <header class="sticky top-0 z-30 bg-[#FFFDF9]/95 backdrop-blur-md border-b border-[#E5D5C5] px-4 py-3">
+    <div class="max-w-5xl mx-auto flex flex-col gap-3">
+      <div class="flex items-center justify-between gap-2">
+        <!-- Brand Mark -->
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-[#2B1710] text-amber-300 flex items-center justify-center font-mono-num font-extrabold text-lg shadow-sm border border-[#5D3A1A]">
+            ₹
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-display font-extrabold text-lg tracking-tight text-[#23120B]">Cocoa</span>
+              <span class="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-[#F7EFE6] text-[#5D3A1A] border border-[#E5D5C5]">100% Offline</span>
+            </div>
+            <p class="text-[11px] font-medium text-[#6E5041]">Managing Expenses by Cocoa</p>
+          </div>
+        </div>
+
+        <!-- Right Action Controls: Import .xlsx & Audio Haptic Toggle -->
+        <div class="flex items-center gap-2">
+          <button id="toggleAudioHapticsBtn" type="button" title="Toggle Tactile Sound & Haptic Feedback" class="px-2.5 py-1.5 rounded-xl bg-[#F7EFE6] hover:bg-[#EDE0D1] text-[#23120B] border border-[#E5D5C5] text-xs font-semibold flex items-center gap-1.5 transition">
+            <span id="hapticStatusIcon">📳</span>
+            <span id="hapticStatusLabel" class="hidden md:inline">Haptics On</span>
+          </button>
+
+          <label for="excelFileInput" class="cursor-pointer px-3 py-1.5 rounded-xl bg-[#2B1710] hover:bg-[#3C2117] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+            <span>📥</span>
+            <span>Import .xlsx</span>
+          </label>
+          <input id="excelFileInput" type="file" accept=".xlsx,.xls" class="hidden" />
+
+          <button id="testWorkbookImportBtn" type="button" title="Generate & Run Smart Importer on a Multi-Sheet Test Workbook" class="px-3 py-1.5 rounded-xl bg-[#8B5A2B] hover:bg-[#734820] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+            <span>⚡</span>
+            <span class="hidden sm:inline">Test Multi-Sheet .xlsx</span>
+            <span class="sm:hidden">Test .xlsx</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Horizontal Month Pill Carousel -->
+      <div class="flex items-center gap-2 overflow-x-auto cocoa-pill-scroll pb-1" id="monthCarouselContainer">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE CONTAINER -->
+  <main class="max-w-5xl mx-auto w-full px-4 pt-4 flex-1">
+
+    <!-- EMPTY DATABASE STATE BANNER (Shown when database has 0 months) -->
+    <section id="emptyVaultState" class="my-6 neo-card rounded-3xl p-6 sm:p-8 text-center max-w-2xl mx-auto hidden">
+      <div class="w-16 h-16 rounded-2xl bg-[#2B1710] text-amber-300 flex items-center justify-center mx-auto mb-4 text-2xl font-mono-num font-bold shadow-md">
+        ₹0
+      </div>
+      <h2 class="font-display font-extrabold text-xl sm:text-2xl text-[#23120B]">Clean Offline Database Initialized</h2>
+      <p class="text-xs sm:text-sm text-[#6E5041] mt-2 leading-relaxed max-w-lg mx-auto">
+        Per strict offline architecture rules, <strong>Cocoa — Managing Expenses by Cocoa</strong> starts with zero pre-populated historical transactions. Create a fresh Monthly Vault below, upload your own <code>.xlsx</code> file, or test the built-in <strong>Smart Multi-Sheet Excel Importer</strong> with a real in-browser multi-tab workbook.
+      </p>
+
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button id="emptyCreateFirstMonthBtn" type="button" class="px-4 py-2.5 rounded-xl bg-[#2B1710] hover:bg-[#3C2117] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow">
+          <span>＋</span>
+          <span>Create New Monthly Vault</span>
+        </button>
+
+        <label for="excelFileInput" class="cursor-pointer px-4 py-2.5 rounded-xl bg-white hover:bg-[#F7EFE6] text-[#23120B] border border-[#8B5A2B] text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm">
+          <span>📂</span>
+          <span>Upload Your .xlsx Workbook</span>
+        </label>
+
+        <button id="emptyRunSampleImportBtn" type="button" class="px-4 py-2.5 rounded-xl bg-[#8B5A2B] hover:bg-[#724820] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow">
+          <span>⚡</span>
+          <span>Simulate Multi-Sheet .xlsx Import Preview</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SCREEN 1: MONTHLY VAULT DASHBOARD (HOME)   -->
+    <!-- ========================================== -->
+    <section id="screenVault" class="space-y-5 hidden">
+
+      <!-- HERO DARK-CHOCOLATE "FINAL DATA" MASTER CARD -->
+      <div class="neo-card-espresso rounded-3xl p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-white/10">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-300/30">Final Data Master Card</span>
+              <span id="vaultActiveMonthBadge" class="text-xs font-semibold text-[#E5D5C5]">October 2026</span>
+            </div>
+            <h2 class="text-lg sm:text-xl font-display font-extrabold text-white mt-1">Monthly Vault Overview</h2>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="editBudgetBtn" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-amber-200 text-xs font-semibold border border-white/15 flex items-center gap-1.5 transition">
+              <span>✏️</span>
+              <span>Edit Budget</span>
+            </button>
+            <button id="openAddExpenseModalBtn" type="button" class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-extrabold flex items-center gap-1 shadow transition">
+              <span>＋</span>
+              <span>Add Expense</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3-Column Core Metrics -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+          <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+            <span class="text-[11px] uppercase tracking-wider text-[#E5D5C5] font-semibold">Monthly Budget Cap</span>
+            <div id="heroBudgetValue" class="text-2xl font-mono-num font-extrabold text-white mt-1">₹0.00</div>
+            <span class="text-[11px] text-amber-200/80">Tap Edit Budget to adjust</span>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+            <span class="text-[11px] uppercase tracking-wider text-[#E5D5C5] font-semibold">Total Expenses</span>
+            <div id="heroSpentValue" class="text-2xl font-mono-num font-extrabold text-amber-300 mt-1">₹0.00</div>
+            <div class="flex items-center gap-3 mt-1 text-[11px]">
+              <span class="text-emerald-300 font-mono-num" id="heroPaidSub">Paid: ₹0</span>
+              <span class="text-amber-300 font-mono-num" id="heroPendingSub">Pending: ₹0</span>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10" id="heroRemainingCard">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] uppercase tracking-wider text-[#E5D5C5] font-semibold">Remaining Balance</span>
+              <span id="heroStatusPill" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300">On Track</span>
+            </div>
+            <div id="heroRemainingValue" class="text-2xl font-mono-num font-extrabold text-emerald-400 mt-1">₹0.00</div>
+            <span id="heroBurnPercentText" class="text-[11px] text-[#E5D5C5]">0% of monthly budget used</span>
+          </div>
+        </div>
+
+        <!-- Animated Budget Progress Bar -->
+        <div class="mt-4">
+          <div class="w-full h-3 rounded-full bg-black/40 overflow-hidden p-0.5 border border-white/10">
+            <div id="heroProgressBar" class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-[#8B5A2B] to-amber-400" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DUAL SUB-BUDGET LIVE GAUGES (SIDE-BY-SIDE INTERACTIVE CARDS) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Gauge 1: Fuel Envelope Gauge -->
+        <div class="neo-card rounded-2xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-[#FEF3C7] text-[#F59E0B] border border-amber-300 flex items-center justify-center text-lg font-bold">
+                  ⛽
+                </div>
+                <div>
+                  <h3 class="font-display font-bold text-sm text-[#23120B]">Fuel Sub-Budget Envelope</h3>
+                  <p class="text-[11px] text-[#6E5041]">Linked to Main Ledger Fuel Anchor</p>
+                </div>
+              </div>
+              <span id="fuelStatusBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF3C7] text-[#B45309]">0.00 L Logged</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 my-3 p-2.5 rounded-xl bg-white border border-[#E5D5C5]">
+              <div>
+                <div class="text-[10px] text-[#6E5041] font-semibold uppercase">Allocated</div>
+                <div id="fuelAllocatedVal" class="font-mono-num font-bold text-xs sm:text-sm text-[#23120B]">₹1,000</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-[#6E5041] font-semibold uppercase">Refuel Spent</div>
+                <div id="fuelSpentVal" class="font-mono-num font-bold text-xs sm:text-sm text-[#F59E0B]">₹0.00</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-[#6E5041] font-semibold uppercase">Budget Left</div>
+                <div id="fuelLeftVal" class="font-mono-num font-bold text-xs sm:text-sm text-emerald-600">₹1,000.00</div>
+              </div>
+            </div>
+
+            <div class="w-full h-2 rounded-full bg-[#E5D5C5] overflow-hidden">
+              <div id="fuelGaugeBar" class="h-full bg-[#F59E0B] transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-2.5 border-t border-[#E5D5C5] flex items-center justify-between">
+            <button type="button" id="jumpToFuelTimelineBtn" class="text-xs font-bold text-[#5D3A1A] hover:underline">
+              Open Fuel Log Drawer →
+            </button>
+            <button type="button" id="quickLogFuelBtn" class="px-3 py-1 rounded-lg bg-[#F59E0B] hover:bg-amber-600 text-white text-xs font-bold shadow-sm transition">
+              + Log Liters (L)
+            </button>
+          </div>
+        </div>
+
+        <!-- Gauge 2: Pocket Money Envelope Gauge -->
+        <div class="neo-card rounded-2xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-[#FFEDD5] text-[#F97316] border border-orange-300 flex items-center justify-center text-lg font-bold">
+                  ☕
+                </div>
+                <div>
+                  <h3 class="font-display font-bold text-sm text-[#23120B]">Pocket Money Micro-Envelope</h3>
+                  <p class="text-[11px] text-[#6E5041]">Daily snacks, biscuits & micro-spends</p>
+                </div>
+              </div>
+              <span id="pocketCountBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FFEDD5] text-[#C2410C]">0 Spends</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 my-3 p-2.5 rounded-xl bg-white border border-[#E5D5C5]">
+              <div>
+                <div class="text-[10px] text-[#6E5041] font-semibold uppercase">Allocated</div>
+                <div id="pocketAllocatedVal" class="font-mono-num font-bold text-xs sm:text-sm text-[#23120B]">₹1,000</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-[#6E5041] font-semibold uppercase">Micro-Spent</div>
+                <div id="pocketSpentVal" class="font-mono-num font-bold text-xs sm:text-sm text-[#F97316]">₹0.00</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-[#6E5041] font-semibold uppercase">Pocket Left</div>
+                <div id="pocketLeftVal" class="font-mono-num font-bold text-xs sm:text-sm text-emerald-600">₹1,000.00</div>
+              </div>
+            </div>
+
+            <div class="w-full h-2 rounded-full bg-[#E5D5C5] overflow-hidden">
+              <div id="pocketGaugeBar" class="h-full bg-[#F97316] transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-2.5 border-t border-[#E5D5C5] flex items-center justify-between">
+            <button type="button" id="jumpToPocketTimelineBtn" class="text-xs font-bold text-[#5D3A1A] hover:underline">
+              Open Micro-Ledger →
+            </button>
+            <button type="button" id="quickSpendPocketBtn" class="px-3 py-1 rounded-lg bg-[#F97316] hover:bg-orange-600 text-white text-xs font-bold shadow-sm transition">
+              + Spend Pocket
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCOUNT FILTER STRIP (ON ACC) & SEARCH -->
+      <div class="neo-card rounded-2xl p-3.5 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-[#5D3A1A]">Payment Account Filter (ON ACC)</span>
+          <div class="flex items-center gap-2">
+            <input id="ledgerSearchInput" type="text" placeholder="Search item, category, note..." class="px-3 py-1 rounded-xl bg-white border border-[#E5D5C5] text-xs text-[#23120B] focus:outline-none focus:border-[#5D3A1A]" />
+          </div>
+        </div>
+        <div id="accountFilterStrip" class="flex items-center gap-2 overflow-x-auto cocoa-pill-scroll pb-1">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- CATEGORIZED MAIN LEDGER LIST -->
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="font-display font-bold text-sm text-[#23120B]">Main Monthly Checklist & Ledger</h3>
+          <span class="text-[11px] text-[#6E5041]">Tap status badge or swipe right to toggle <strong>Paid / Pending</strong></span>
+        </div>
+        <div id="mainLedgerListContainer" class="space-y-2.5">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SCREEN 2: TIMELINES HUB (CHRONOLOGICAL)    -->
+    <!-- ========================================== -->
+    <section id="screenTimelines" class="space-y-5 hidden">
+      <div class="neo-card rounded-2xl p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="font-display font-extrabold text-lg text-[#23120B]">Chronological Timelines Hub</h2>
+            <p class="text-xs text-[#6E5041]">Isolated day-by-day activity streams for <strong id="timelineMonthLabel">Current Month</strong></p>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5" id="timelineSubTabContainer">
+            <button type="button" data-subtab="master" class="tl-subtab-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#2B1710] text-white">1. Master Stream</button>
+            <button type="button" data-subtab="fuel" class="tl-subtab-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-[#23120B] border border-[#E5D5C5]">2. Fuel & Mileage (L)</button>
+            <button type="button" data-subtab="pocket" class="tl-subtab-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-[#23120B] border border-[#E5D5C5]">3. Pocket Money</button>
+            <button type="button" data-subtab="people" class="tl-subtab-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-[#23120B] border border-[#E5D5C5]">4. People & Split Repayments</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-View 1: Master Chronological Timeline -->
+      <div id="tlViewMaster" class="space-y-3">
+        <div id="masterTimelineContainer" class="relative pl-6 border-l-2 border-[#8B5A2B] space-y-3"></div>
+      </div>
+
+      <!-- Sub-View 2: Fuel & Mileage Log -->
+      <div id="tlViewFuel" class="space-y-4 hidden">
+        <div class="neo-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-display font-bold text-sm text-[#23120B]">Fuel & Mileage Sub-Ledger</h3>
+            <p id="fuelSummarySubtext" class="text-xs text-[#6E5041] font-mono-num">Allocated: ₹1,000 | Logged: 0.00 L | Remaining: ₹1,000</p>
+          </div>
+          <button type="button" id="tlAddFuelBtn" class="px-3.5 py-2 rounded-xl bg-[#F59E0B] hover:bg-amber-600 text-white text-xs font-bold shadow">
+            + Refuel (Log Liters)
+          </button>
+        </div>
+        <div id="fuelTimelineList" class="space-y-2.5"></div>
+      </div>
+
+      <!-- Sub-View 3: Pocket Money Daily Spend -->
+      <div id="tlViewPocket" class="space-y-4 hidden">
+        <div class="neo-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-display font-bold text-sm text-[#23120B]">Pocket Money Daily Micro-Spend Drawdown</h3>
+            <p id="pocketSummarySubtext" class="text-xs text-[#6E5041] font-mono-num">Allocated: ₹1,000 | Spent: ₹0 | Remaining: ₹1,000</p>
+          </div>
+          <button type="button" id="tlAddPocketBtn" class="px-3.5 py-2 rounded-xl bg-[#F97316] hover:bg-orange-600 text-white text-xs font-bold shadow">
+            + Log Micro-Spend
+          </button>
+        </div>
+        <div id="pocketTimelineList" class="space-y-2.5"></div>
+      </div>
+
+      <!-- Sub-View 4: People, Lending & Split Repayments -->
+      <div id="tlViewPeople" class="space-y-4 hidden">
+        <div class="neo-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-display font-bold text-sm text-[#23120B]">People Lending, Borrowed & Multi-Item Split Settlements</h3>
+            <p class="text-xs text-[#6E5041]">Supports slash-separated itemized breakdowns (e.g., <code>mobile recharge - 350 / wifi - 471 / petrol 3lt - 350</code>)</p>
+          </div>
+          <button type="button" id="tlAddPeopleBtn" class="px-3.5 py-2 rounded-xl bg-[#6366F1] hover:bg-indigo-600 text-white text-xs font-bold shadow">
+            + Log Person / Repayment
+          </button>
+        </div>
+        <div id="peopleTimelineList" class="space-y-2.5"></div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SCREEN 3: INVESTMENTS, ACCOUNTS & ANALYTICS-->
+    <!-- ========================================== -->
+    <section id="screenAnalytics" class="space-y-6 hidden">
+      <!-- Investment Portfolio Tracker -->
+      <div class="neo-card-espresso rounded-3xl p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-[#D1FAE5] text-[#10B981] flex items-center justify-center text-2xl font-bold">
+              🌱
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Wealth & SIP Vault</span>
+              <h2 class="font-display font-extrabold text-lg sm:text-xl text-white">Investment Portfolio Tracker</h2>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[11px] text-[#E5D5C5]">Cumulative Invested Across Vaults</span>
+            <div id="totalInvestmentsBuiltVal" class="text-2xl font-mono-num font-extrabold text-emerald-400">₹0.00</div>
+          </div>
+        </div>
+        <div id="investmentEntriesGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-4"></div>
+      </div>
+
+      <!-- Bank & Card Outflow Matrix (BOI, KMB, PNB, slice, Cash) -->
+      <div class="neo-card rounded-2xl p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="font-display font-bold text-base text-[#23120B]">Bank & Credit Account Outflow Matrix (ON ACC)</h3>
+            <p class="text-xs text-[#6E5041]">Live outflow & pending dues for the selected month + optional manual <code>Total balance /-</code> snapshot per bank</p>
+          </div>
+        </div>
+        <div id="bankMatrixGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"></div>
+      </div>
+
+      <!-- Visual Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="neo-card-white rounded-2xl p-4">
+          <h3 class="font-display font-bold text-sm text-[#23120B] mb-2">Category Spend Share (Selected Month)</h3>
+          <div class="relative h-72">
+            <canvas id="categoryDonutChart"></canvas>
+          </div>
+        </div>
+
+        <div class="neo-card-white rounded-2xl p-4">
+          <h3 class="font-display font-bold text-sm text-[#23120B] mb-2">Cross-Month Budget vs. Actual Spend</h3>
+          <div class="relative h-72">
+            <canvas id="monthlyBarChart"></canvas>
+          </div>
+        </div>
+
+        <div class="neo-card-white rounded-2xl p-4 lg:col-span-2">
+          <h3 class="font-display font-bold text-sm text-[#23120B] mb-2">Fuel Liters (L) & Refuel Spend Trendline</h3>
+          <div class="relative h-64">
+            <canvas id="fuelTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SCREEN 4: SETTINGS, TEMPLATES & LEGAL      -->
+    <!-- ========================================== -->
+    <section id="screenSettings" class="space-y-5 hidden">
+      <!-- Recurring Commitments Cloner -->
+      <div class="neo-card rounded-2xl p-5 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-[#2B1710] text-amber-300">Smart Automation</span>
+            <h3 class="font-display font-bold text-base text-[#23120B] mt-1">Clone Fixed Monthly Commitments</h3>
+            <p class="text-xs text-[#6E5041]">
+              One-tap populate your recurring monthly anchors (<code>SIP ₹3,000</code>, <code>Wifi recharge ₹471</code>, <code>Mobile Recharge ₹350</code>, <code>Fuel ₹1,000</code>, <code>Pocket Money ₹1,200</code>, <code>GYM ₹800</code>) into the active month as <strong>Pending</strong>.
+            </p>
+          </div>
+          <button type="button" id="cloneRecurringBtn" class="px-4 py-2.5 rounded-xl bg-[#2B1710] hover:bg-[#3C2117] text-white text-xs font-bold shadow">
+            ⚡ Clone Fixed Commitments to Active Month
+          </button>
+        </div>
+      </div>
+
+      <!-- Data Management: Import / Export .xlsx, PDF Statement, JSON Backup & Reset -->
+      <div class="neo-card rounded-2xl p-5 space-y-4">
+        <h3 class="font-display font-bold text-base text-[#23120B]">Offline Data Vault & Export Engine</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <button type="button" id="exportXlsxBtn" class="p-3.5 rounded-xl bg-white hover:bg-[#F7EFE6] border border-[#E5D5C5] text-left transition">
+            <div class="text-lg">📊</div>
+            <div class="font-bold text-xs text-[#23120B] mt-1">Export Formatted .xlsx</div>
+            <div class="text-[11px] text-[#6E5041]">All Monthly Vaults & Sub-Ledgers</div>
+          </button>
+
+          <button type="button" id="exportPdfBtn" class="p-3.5 rounded-xl bg-white hover:bg-[#F7EFE6] border border-[#E5D5C5] text-left transition">
+            <div class="text-lg">📄</div>
+            <div class="font-bold text-xs text-[#23120B] mt-1">Export Monthly PDF Statement</div>
+            <div class="text-[11px] text-[#6E5041]">Branded Cocoa Statement</div>
+          </button>
+
+          <button type="button" id="exportJsonBtn" class="p-3.5 rounded-xl bg-white hover:bg-[#F7EFE6] border border-[#E5D5C5] text-left transition">
+            <div class="text-lg">💾</div>
+            <div class="font-bold text-xs text-[#23120B] mt-1">Backup SQLite / JSON Snapshot</div>
+            <div class="text-[11px] text-[#6E5041]">100% Local Offline Backup</div>
+          </button>
+
+          <button type="button" id="resetAllDataBtn" class="p-3.5 rounded-xl bg-[#FEE2E2] hover:bg-red-200 border border-red-300 text-left transition">
+            <div class="text-lg">⚠️</div>
+            <div class="font-bold text-xs text-red-900 mt-1">Reset All Vault Data</div>
+            <div class="text-[11px] text-red-700">Double-Confirm + Heavy Haptic</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Offline Legal & Compliance Center -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="neo-card-white rounded-2xl p-5 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">100% Offline Privacy Guarantee</span>
+            <span class="text-xs font-mono-num text-[#6E5041]">v1.0</span>
+          </div>
+          <h3 class="font-display font-bold text-base text-[#23120B]">Privacy Policy — Cocoa</h3>
+          <div class="text-xs text-[#6E5041] space-y-2 leading-relaxed max-h-60 overflow-y-auto pr-1">
+            <p><strong>1. Zero Cloud Telemetry & 100% Local Execution:</strong> Cocoa ("Managing Expenses by Cocoa") operates strictly offline on your Android device / local browser storage. The application requests zero internet permissions in its AndroidManifest and transmits zero personal, banking, or financial data to any external server.</p>
+            <p><strong>2. Local In-Memory Excel (.xlsx) Processing:</strong> When you import or export an Excel workbook, all parsing, normalization, and sheet generation occur exclusively within local device memory.</p>
+            <p><strong>3. Data Ownership & Sovereign Control:</strong> All Monthly Vaults, Fuel logs, Pocket Money micro-spends, and People repayment records remain under your physical control. You may export or permanently wipe your local database at any time using the Reset control above.</p>
+          </div>
+        </div>
+
+        <div class="neo-card-white rounded-2xl p-5 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900">Legal Standards</span>
+            <span class="text-xs font-mono-num text-[#6E5041]">Terms</span>
+          </div>
+          <h3 class="font-display font-bold text-base text-[#23120B]">Terms of Use — Managing Expenses by Cocoa</h3>
+          <div class="text-xs text-[#6E5041] space-y-2 leading-relaxed max-h-60 overflow-y-auto pr-1">
+            <p><strong>1. Personal Bookkeeping Purpose:</strong> Cocoa is provided as a personal expense, sub-budget, and investment tracking utility. Figures, fuel mileage calculations, and SIP tallies are based solely on user-entered or user-imported ledger records.</p>
+            <p><strong>2. User Responsibility for Local Backups:</strong> Because Cocoa stores 100% of data locally on your device without cloud syncing, you are responsible for exporting periodic <code>.xlsx</code> or JSON backups prior to factory-resetting or switching devices.</p>
+            <p><strong>3. No Financial or Investment Advisory Liability:</strong> Portfolio summaries (such as SIP or HSBC mutual fund tracking) are informational bookkeeping views and do not constitute regulated investment advice.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- BOTTOM NAVIGATION BAR                      -->
+  <!-- ========================================== -->
+  <nav class="fixed bottom-0 inset-x-0 z-30 bg-[#2B1710] border-t border-[#4A2C1D] text-white px-2 py-2 shadow-2xl">
+    <div class="max-w-lg mx-auto grid grid-cols-4 gap-1">
+      <button type="button" data-tab="vault" class="bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl bg-[#8B5A2B] text-white transition">
+        <span class="text-base">🍫</span>
+        <span class="text-[11px] font-bold mt-0.5">Monthly Vault</span>
+      </button>
+      <button type="button" data-tab="timelines" class="bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[#E5D5C5] hover:bg-white/10 transition">
+        <span class="text-base">⏱️</span>
+        <span class="text-[11px] font-semibold mt-0.5">Timelines</span>
+      </button>
+      <button type="button" data-tab="analytics" class="bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[#E5D5C5] hover:bg-white/10 transition">
+        <span class="text-base">📈</span>
+        <span class="text-[11px] font-semibold mt-0.5">Analytics</span>
+      </button>
+      <button type="button" data-tab="settings" class="bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[#E5D5C5] hover:bg-white/10 transition">
+        <span class="text-base">⚙️</span>
+        <span class="text-[11px] font-semibold mt-0.5">Settings</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ========================================== -->
+  <!-- MODALS & INTERACTIVE BOTTOM SHEETS         -->
+  <!-- ========================================== -->
+
+  <!-- 1. EXCEL IMPORT PREVIEW MODAL -->
+  <div id="importPreviewModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+    <div class="neo-card-white rounded-3xl max-w-lg w-full p-6 space-y-4 border-2 border-[#5D3A1A] shadow-2xl">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-[#2B1710] text-amber-300 flex items-center justify-center text-lg font-bold">📥</div>
+          <div>
+            <h3 class="font-display font-extrabold text-base text-[#23120B]">Smart Excel Importer Preview</h3>
+            <p class="text-[11px] text-[#6E5041]">Multi-sheet anchor scan & category normalization complete</p>
+          </div>
+        </div>
+        <button type="button" id="closeImportPreviewBtn" class="text-sm font-bold text-[#6E5041] hover:text-[#23120B]">✕</button>
+      </div>
+
+      <div id="importPreviewSummaryText" class="p-4 rounded-2xl bg-[#F7EFE6] border border-[#E5D5C5] text-xs text-[#23120B] leading-relaxed font-medium">
+        <!-- Populated dynamically -->
+      </div>
+
+      <div id="importSheetBreakdownList" class="max-h-52 overflow-y-auto space-y-2 pr-1">
+        <!-- Sheet-by-sheet breakdown -->
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" id="cancelImportBtn" class="px-4 py-2 rounded-xl bg-[#F7EFE6] text-[#23120B] text-xs font-bold">Cancel</button>
+        <button type="button" id="confirmImportBtn" class="px-5 py-2.5 rounded-xl bg-[#10B981] hover:bg-emerald-600 text-slate-950 text-xs font-extrabold shadow">
+          ✓ Import into Cocoa Vault
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. CREATE NEW MONTH / EDIT BUDGET MODAL -->
+  <div id="monthModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+    <div class="neo-card-white rounded-3xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="monthModalTitle" class="font-display font-extrabold text-base text-[#23120B]">Create Monthly Vault</h3>
+        <button type="button" id="closeMonthModalBtn" class="text-sm font-bold text-[#6E5041]">✕</button>
+      </div>
+      <form id="monthForm" class="space-y-3">
+        <input type="hidden" id="monthFormMode" value="create" />
+        <div>
+          <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Month Display Name (e.g., December 2026)</label>
+          <input id="monthDisplayNameInput" type="text" required placeholder="October 2026" class="w-full px-3.5 py-2 rounded-xl border border-[#E5D5C5] text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Monthly Budget Cap (₹ INR)</label>
+          <input id="monthBudgetInput" type="number" step="0.01" required placeholder="15000" class="w-full px-3.5 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Fuel Sub-Budget (₹)</label>
+            <input id="monthFuelAllocInput" type="number" step="0.01" value="1000" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Pocket Money (₹)</label>
+            <input id="monthPocketAllocInput" type="number" step="0.01" value="1200" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+        </div>
+        <label id="cloneCommitmentsCheckWrap" class="flex items-center gap-2 pt-1 cursor-pointer">
+          <input id="monthCloneCommitmentsCheck" type="checkbox" checked class="w-4 h-4 accent-[#2B1710]" />
+          <span class="text-xs text-[#23120B] font-medium">Auto-populate fixed monthly commitments (SIP, Wi-Fi, Mobile, Fuel, Pocket Money, GYM)</span>
+        </label>
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" id="cancelMonthModalBtn" class="px-4 py-2 rounded-xl bg-[#F7EFE6] text-xs font-bold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-[#2B1710] text-white text-xs font-bold">Save Vault</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. ADD / EDIT MAIN LEDGER EXPENSE BOTTOM SHEET -->
+  <div id="expenseModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+    <div class="neo-card-white rounded-3xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="expenseModalTitle" class="font-display font-extrabold text-base text-[#23120B]">+ Add Main Ledger Expense</h3>
+        <button type="button" id="closeExpenseModalBtn" class="text-sm font-bold text-[#6E5041]">✕</button>
+      </div>
+      <form id="expenseForm" class="space-y-3">
+        <input type="hidden" id="expenseEditId" value="" />
+        <div>
+          <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Description</label>
+          <input id="expDescInput" type="text" required placeholder="e.g., Wifi recharge, HSBC SIP, Bike Service" class="w-full px-3.5 py-2 rounded-xl border border-[#E5D5C5] text-sm" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Amount (₹)</label>
+            <input id="expAmountInput" type="number" step="0.01" required placeholder="471" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Date</label>
+            <input id="expDateInput" type="date" required class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Vibrant Category</label>
+            <select id="expCatSelect" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-xs font-semibold bg-white">
+              <option value="Investments">🌱 Investments (SIP / HSBC)</option>
+              <option value="Utilities & Bills">⚡ Utilities & Bills</option>
+              <option value="Fuel & Vehicle">⛽ Fuel & Vehicle</option>
+              <option value="Pocket Money">☕ Pocket Money</option>
+              <option value="Shopping & Lifestyle">🛍️ Shopping & Lifestyle</option>
+              <option value="Gym & Fitness">🏋️ Gym & Fitness</option>
+              <option value="Education & Certificates">🎓 Education & Certificates</option>
+              <option value="EMI & Credit Cards">💳 EMI & Credit Cards</option>
+              <option value="Borrowed / People">🤝 Borrowed / People</option>
+              <option value="General Expenses">📋 General Expenses</option>
+              <option value="Miscellaneous">🧩 Miscellaneous</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Payment Account (ON ACC)</label>
+            <select id="expAccSelect" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-xs font-semibold bg-white">
+              <option value="BOI">BOI (Bank of India)</option>
+              <option value="KMB">KMB (Kotak Mahindra)</option>
+              <option value="PNB">PNB (Punjab National)</option>
+              <option value="slice">slice (Credit / UPI)</option>
+              <option value="Cash">Cash</option>
+              <option value="Unspecified">Unspecified</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Status</label>
+            <select id="expStatusSelect" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-xs font-semibold bg-white">
+              <option value="PAID">✓ Paid / Done</option>
+              <option value="PENDING">⏳ Pending / Unpaid</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Notes</label>
+            <input id="expNotesInput" type="text" placeholder="Optional note" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-xs" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" id="cancelExpenseModalBtn" class="px-4 py-2 rounded-xl bg-[#F7EFE6] text-xs font-bold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-[#2B1710] text-white text-xs font-bold">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. LOG FUEL IN LITERS MODAL -->
+  <div id="fuelModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+    <div class="neo-card-white rounded-3xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-display font-extrabold text-base text-[#23120B]">⛽ + Log Fuel Refill in Liters</h3>
+        <button type="button" id="closeFuelModalBtn" class="text-sm font-bold text-[#6E5041]">✕</button>
+      </div>
+      <form id="fuelForm" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Fuel Liters (L)</label>
+            <input id="fuelLitersInput" type="number" step="0.01" required placeholder="3.09" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Amount Paid (₹)</label>
+            <input id="fuelAmountInput" type="number" step="0.01" required placeholder="350.00" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Date</label>
+            <input id="fuelDateInput" type="date" required class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Vehicle / Fuel Note</label>
+            <input id="fuelNoteInput" type="text" value="Petrol" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" id="cancelFuelModalBtn" class="px-4 py-2 rounded-xl bg-[#F7EFE6] text-xs font-bold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-[#F59E0B] text-white text-xs font-bold">Save Fuel Log</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. SPEND POCKET MONEY MODAL -->
+  <div id="pocketModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+    <div class="neo-card-white rounded-3xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-display font-extrabold text-base text-[#23120B]">☕ + Spend Pocket Money</h3>
+        <button type="button" id="closePocketModalBtn" class="text-sm font-bold text-[#6E5041]">✕</button>
+      </div>
+      <form id="pocketForm" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Item Description</label>
+          <input id="pocketDescInput" type="text" required placeholder="e.g., Good Day Biscuit, EvoFox Gaming Mouse" class="w-full px-3.5 py-2 rounded-xl border border-[#E5D5C5] text-sm" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Amount (₹)</label>
+            <input id="pocketAmtInput" type="number" step="0.01" required placeholder="45" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Date</label>
+            <input id="pocketDateInput" type="date" required class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" id="cancelPocketModalBtn" class="px-4 py-2 rounded-xl bg-[#F7EFE6] text-xs font-bold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-[#F97316] text-white text-xs font-bold">Log Micro-Spend</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. LOG PEOPLE / LENDING / SPLIT REPAYMENT MODAL -->
+  <div id="peopleModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+    <div class="neo-card-white rounded-3xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-display font-extrabold text-base text-[#23120B]">🤝 + Log Person / Split Repayment</h3>
+        <button type="button" id="closePeopleModalBtn" class="text-sm font-bold text-[#6E5041]">✕</button>
+      </div>
+      <form id="peopleForm" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Person or Settlement Title</label>
+          <input id="peopleNameInput" type="text" required placeholder="e.g., Sayan Ghosh, Bhai, Ma, Consolidated Repayment" class="w-full px-3.5 py-2 rounded-xl border border-[#E5D5C5] text-sm" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Amount (₹)</label>
+            <input id="peopleAmtInput" type="number" step="0.01" required placeholder="1331" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Type</label>
+            <select id="peopleTypeSelect" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-xs font-semibold bg-white">
+              <option value="SPLIT_REPAYMENT">Split Repayment (Multi-Item)</option>
+              <option value="BORROWED">Borrowed from Person</option>
+              <option value="LENT_OR_GIVEN">Lent / Given to Person</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Date</label>
+          <input id="peopleDateInput" type="date" required class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-sm font-mono-num" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-[#5D3A1A] mb-1">Slash-Separated Breakdown Notes (Optional)</label>
+          <input id="peopleBreakdownInput" type="text" placeholder="mobile recharge - 350 / wifi recharge - 471 / 2t oil 500 ml - 160 / petrol 3lt - 350" class="w-full px-3 py-2 rounded-xl border border-[#E5D5C5] text-xs" />
+        </div>
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" id="cancelPeopleModalBtn" class="px-4 py-2 rounded-xl bg-[#F7EFE6] text-xs font-bold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-[#6366F1] text-white text-xs font-bold">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. RESET CONFIRMATION MODAL -->
+  <div id="resetConfirmModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+    <div class="neo-card-white rounded-3xl max-w-md w-full p-6 space-y-4 border-2 border-red-600">
+      <h3 class="font-display font-extrabold text-base text-red-700">⚠️ Confirm Permanent Vault Reset</h3>
+      <p class="text-xs text-[#23120B] leading-relaxed">
+        This will permanently wipe all Monthly Vaults, Main Ledger records, Fuel logs, Pocket Money entries, and People settlements from local storage and return Cocoa to a clean, empty database.
+      </p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" id="cancelResetBtn" class="px-4 py-2 rounded-xl bg-[#F7EFE6] text-xs font-bold">Cancel</button>
+        <button type="button" id="confirmResetAllBtn" class="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold">
+          Wipe All Offline Data
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- APPLICATION ENGINE & OFFLINE DATABASE JS   -->
+  <!-- ========================================== -->
+  <script>
+    const STORAGE_KEY = 'cocoa_offline_vault_v1';
+
+    // Category Visual Metadata (Vibrant Semantic Icons & Pills)
+    const CATEGORY_META = {
+      'Investments': { icon: '🌱', iconColor: '#10B981', pillBg: '#D1FAE5' },
+      'Utilities & Bills': { icon: '⚡', iconColor: '#3B82F6', pillBg: '#DBEAFE' },
+      'Fuel & Vehicle': { icon: '⛽', iconColor: '#F59E0B', pillBg: '#FEF3C7' },
+      'Pocket Money': { icon: '☕', iconColor: '#F97316', pillBg: '#FFEDD5' },
+      'Shopping & Lifestyle': { icon: '🛍️', iconColor: '#8B5CF6', pillBg: '#EDE9FE' },
+      'Gym & Fitness': { icon: '🏋️', iconColor: '#EC4899', pillBg: '#FCE7F3' },
+      'Education & Certificates': { icon: '🎓', iconColor: '#06B6D4', pillBg: '#CFFAFE' },
+      'EMI & Credit Cards': { icon: '💳', iconColor: '#EF4444', pillBg: '#FEE2E2' },
+      'Borrowed / People': { icon: '🤝', iconColor: '#6366F1', pillBg: '#E0E7FF' },
+      'General Expenses': { icon: '📋', iconColor: '#8B5A2B', pillBg: '#F7EFE6' },
+      'Miscellaneous': { icon: '🧩', iconColor: '#6E5041', pillBg: '#EDE0D1' }
+    };
+
+    const ACCOUNT_META = {
+      'BOI': { label: 'BOI', bg: '#1E3A8A', text: '#FDBA74', border: '#EA580C', fullName: 'Bank of India' },
+      'KMB': { label: 'KMB', bg: '#991B1B', text: '#FFFFFF', border: '#1E3A8A', fullName: 'Kotak Mahindra Bank' },
+      'PNB': { label: 'PNB', bg: '#7F1D1D', text: '#FDE68A', border: '#D97706', fullName: 'Punjab National Bank' },
+      'slice': { label: 'slice', bg: '#7C3AED', text: '#FFFFFF', border: '#A78BFA', fullName: 'slice Credit / UPI' },
+      'Cash': { label: 'Cash', bg: '#16A34A', text: '#FFFFFF', border: '#4ADE80', fullName: 'Cash in Hand' },
+      'Unspecified': { label: 'Unspecified', bg: '#6E5041', text: '#FFFFFF', border: '#8B5A2B', fullName: 'Unspecified Account' }
+    };
+
+    // CRITICAL DATA RULE: Starts with a 100% clean, empty database!
+    function createCleanEmptyState() {
+      return {
+        legalAccepted: false,
+        hapticsEnabled: true,
+        activeTab: 'vault',
+        activeTimelineSubTab: 'master',
+        selectedMonthId: null,
+        accountFilter: 'ALL',
+        searchQuery: '',
+        months: [], // Strictly empty on initial launch!
+        ledger: [],
+        fuelLogs: [],
+        pocketLogs: [],
+        peopleLogs: [],
+        accountWallets: {
+          'BOI': 0,
+          'KMB': 0,
+          'PNB': 0,
+          'slice': 0,
+          'Cash': 0
+        }
+      };
+    }
+
+    let appState = createCleanEmptyState();
+    let pendingExcelImportPreview = null;
+    let chartInstances = { donut: null, bar: null, fuel: null };
+    let audioCtx = null;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          appState = Object.assign(createCleanEmptyState(), parsed);
+        }
+      } catch (e) {
+        appState = createCleanEmptyState();
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        // Ignore storage quota issues in sandboxed mode
+      }
+    }
+
+    // ==========================================
+    // NATIVE HAPTICS & WEB AUDIO TACTILE ENGINE
+    // ==========================================
+    function triggerHaptic(type, customLabel) {
+      if (!appState.hapticsEnabled) return;
+
+      // 1. Hardware vibration if supported
+      try {
+        if (navigator.vibrate) {
+          if (type === 'LIGHT_TICK') navigator.vibrate(10);
+          else if (type === 'MEDIUM_CONFIRM') navigator.vibrate([20, 40, 30]);
+          else if (type === 'HEAVY_WARNING') navigator.vibrate([45, 35, 45, 35, 65]);
+        }
+      } catch (e) {}
+
+      // 2. Synthesized tactile audio pulse
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        if (audioCtx) {
+          const now = audioCtx.currentTime;
+          if (type === 'LIGHT_TICK') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, now);
+            gain.gain.setValueAtTime(0.04, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.028);
+          } else if (type === 'MEDIUM_CONFIRM') {
+            [440, 660].forEach((freq, i) => {
+              const osc = audioCtx.createOscillator();
+              const gain = audioCtx.createGain();
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(freq, now + i * 0.065);
+              gain.gain.setValueAtTime(0.07, now + i * 0.065);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.065 + 0.055);
+              osc.connect(gain);
+              gain.connect(audioCtx.destination);
+              osc.start(now + i * 0.065);
+              osc.stop(now + i * 0.065 + 0.06);
+            });
+          } else if (type === 'HEAVY_WARNING') {
+            [190, 175, 155].forEach((freq, i) => {
+              const osc = audioCtx.createOscillator();
+              const gain = audioCtx.createGain();
+              osc.type = 'sawtooth';
+              osc.frequency.setValueAtTime(freq, now + i * 0.08);
+              gain.gain.setValueAtTime(0.08, now + i * 0.08);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.065);
+              osc.connect(gain);
+              gain.connect(audioCtx.destination);
+              osc.start(now + i * 0.08);
+              osc.stop(now + i * 0.08 + 0.07);
+            });
+          }
+        }
+      } catch (e) {}
+
+      // 3. Visual Toast Pill
+      const toast = document.getElementById('hapticToast');
+      const dot = document.getElementById('hapticDot');
+      const text = document.getElementById('hapticText');
+      if (toast && dot && text) {
+        toast.classList.remove('hidden');
+        toast.classList.add('flex');
+        if (type === 'HEAVY_WARNING') {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-ping';
+        } else if (type === 'MEDIUM_CONFIRM') {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping';
+        } else {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-300';
+        }
+        text.textContent = customLabel || `Haptic: ${type}`;
+        clearTimeout(window._hapticToastTimer);
+        window._hapticToastTimer = setTimeout(() => {
+          toast.classList.add('hidden');
+          toast.classList.remove('flex');
+        }, 1600);
+      }
+    }
+
+    function formatINR(val) {
+      const num = Number(val) || 0;
+      const sign = num < 0 ? '-' : '';
+      return sign + '₹' + Math.abs(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // ==========================================
+    // SMART MULTI-SHEET .XLSX PARSER & NORMALIZER
+    // ==========================================
+    function normalizeCategory(rawCat, desc) {
+      const c = String(rawCat || '').trim().toLowerCase();
+      const d = String(desc || '').trim().toLowerCase();
+      if (c.includes('invest') || d.includes('sip') || d.includes('hsbc')) return 'Investments';
+      if (c.includes('utlit') || c.includes('utilit') || c.includes('bill') || d.includes('wifi') || d.includes('recharge') || d.includes('electric')) return 'Utilities & Bills';
+      if (c.includes('fuel') || c.includes('vehicle') || d.includes('petrol') || d.includes('2t oil') || d.includes('bike')) return 'Fuel & Vehicle';
+      if (d.includes('pocket money') || c.includes('pocket')) return 'Pocket Money';
+      if (c.includes('shop') || c.includes('lifestyle') || d.includes('puja') || d.includes('gift') || d.includes('apparel') || d.includes('hoodie')) return 'Shopping & Lifestyle';
+      if (c.includes('gym') || d.includes('gym')) return 'Gym & Fitness';
+      if (c.includes('educat') || c.includes('cert') || d.includes('nptel') || d.includes('book')) return 'Education & Certificates';
+      if (c.includes('loan') || c.includes('instalment') || c.includes('emi') || d.includes('emi') || d.includes('credit card')) return 'EMI & Credit Cards';
+      if (c.includes('borrow') || c.includes('people') || d.includes('repayment')) return 'Borrowed / People';
+      if (c.includes('miscl') || c.includes('misc')) return 'Miscellaneous';
+      return 'General Expenses';
+    }
+
+    function normalizeStatus(rawStatus) {
+      const s = String(rawStatus || '').trim().toLowerCase();
+      return (s === 'paid' || s === 'done') ? 'PAID' : 'PENDING';
+    }
+
+    function normalizeAccount(rawAcc) {
+      const a = String(rawAcc || '').trim().toLowerCase();
+      if (a.includes('pnb')) return 'PNB';
+      if (a.includes('kmb')) return 'KMB';
+      if (a.includes('slice')) return 'slice';
+      if (a.includes('boi')) return 'BOI';
+      if (a.includes('cash')) return 'Cash';
+      return 'Unspecified';
+    }
+
+    function resolveMonthFromTabName(tabName, fallbackIdx) {
+      const lower = String(tabName || '').toLowerCase();
+      const map = [
+        ['january', '01', 'January'],
+        ['february', '02', 'February'],
+        ['march', '03', 'March'],
+        ['april', '04', 'April'],
+        ['may', '05', 'May'],
+        ['june', '06', 'June'],
+        ['july', '07', 'July'],
+        ['august', '08', 'August'],
+        ['september', '09', 'September'],
+        ['october', '10', 'October'],
+        ['november', '11', 'November'],
+        ['december', '12', 'December']
+      ];
+      for (const [key, num, label] of map) {
+        if (lower.includes(key)) {
+          return { monthId: `2026-${num}`, displayName: `${label} 2026` };
+        }
+      }
+      const mNum = String(Math.min(12, Math.max(1, fallbackIdx + 7))).padStart(2, '0');
+      return { monthId: `2026-${mNum}`, displayName: `${tabName.trim()} 2026` };
+    }
+
+    function parseExcelWorkbookToPreview(workbook) {
+      const parsedSheets = [];
+      workbook.SheetNames.forEach((sheetName, sIdx) => {
+        const ws = workbook.Sheets[sheetName];
+        const grid = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        if (!grid || grid.length === 0) return;
+
+        // Tab-Name Priority over internal copy-pasted cell headers!
+        const { monthId, displayName } = resolveMonthFromTabName(sheetName, sIdx);
+
+        // 1. Dynamic Anchor Scan: first 10 rows & 10 cols for "Sn no."
+        let snRow = -1;
+        let snCol = -1;
+        for (let r = 0; r < Math.min(12, grid.length); r++) {
+          const row = grid[r] || [];
+          for (let c = 0; c < Math.min(12, row.length); c++) {
+            const val = String(row[c] || '').trim().toLowerCase();
+            if (val.includes('sn no') || val === 'sn' || val === 's.no') {
+              snRow = r;
+              snCol = c;
+              break;
+            }
+          }
+          if (snRow !== -1) break;
+        }
+        if (snRow === -1) return;
+
+        // 2. Scan rightwards for Final Data / Budget cap
+        let budgetCap = 15000;
+        for (let r = 0; r < Math.min(15, grid.length); r++) {
+          const row = grid[r] || [];
+          for (let c = 0; c < row.length; c++) {
+            const txt = String(row[c] || '').trim().toLowerCase();
+            if (txt === 'budget' || txt === 'monthly budget') {
+              const candidate = parseFloat(String(row[c + 1] || '').replace(/[^0-9.-]/g, ''));
+              if (!isNaN(candidate) && candidate > 0) budgetCap = candidate;
+            }
+          }
+        }
+
+        // 3. Extract Main Ledger rows starting below snRow
+        const ledgerItems = [];
+        let fuelAlloc = 1000;
+        let pocketAlloc = 1000;
+        for (let r = snRow + 1; r < grid.length; r++) {
+          const row = grid[r] || [];
+          const snRaw = row[snCol];
+          const desc = String(row[snCol + 1] || '').trim();
+          if (!desc || desc.toLowerCase().startsWith('total')) {
+            if (!snRaw) break;
+            continue;
+          }
+          const rawCat = row[snCol + 2];
+          const amt = parseFloat(String(row[snCol + 3] || '0').replace(/[^0-9.-]/g, '')) || 0;
+          const rawStatus = row[snCol + 4];
+          const rawAcc = row[snCol + 5];
+          const rawDate = String(row[snCol + 6] || '').trim() || `${monthId}-05`;
+          const notes = String(row[snCol + 7] || '').trim();
+
+          let anchor = 'NONE';
+          if (desc.toLowerCase() === 'fuel') {
+            fuelAlloc = amt || 1000;
+            anchor = 'FUEL_ANCHOR';
+          } else if (desc.toLowerCase().includes('pocket money')) {
+            pocketAlloc = amt || 1000;
+            anchor = 'POCKET_MONEY_ANCHOR';
+          }
+
+          ledgerItems.push({
+            id: `tx_${monthId}_${r}_${Math.random().toString(36).slice(2, 7)}`,
+            monthId,
+            serialNo: parseInt(snRaw, 10) || (ledgerItems.length + 1),
+            description: desc,
+            category: normalizeCategory(rawCat, desc),
+            amount: amt,
+            status: normalizeStatus(rawStatus),
+            accountTag: normalizeAccount(rawAcc),
+            createdAtDate: rawDate,
+            notes,
+            isSubBudgetAnchor: anchor
+          });
+        }
+
+        // 4. Scan right-hand columns for LITERS (Fuel Sub-Ledger)
+        const fuelLogs = [];
+        let litersRow = -1;
+        let litersCol = -1;
+        for (let r = 0; r < Math.min(12, grid.length); r++) {
+          const row = grid[r] || [];
+          for (let c = snCol + 5; c < row.length; c++) {
+            const txt = String(row[c] || '').trim().toLowerCase();
+            if (txt === 'liters' || txt === 'ltrs') {
+              litersRow = r;
+              litersCol = c;
+              break;
+            }
+          }
+          if (litersRow !== -1) break;
+        }
+        if (litersRow !== -1) {
+          for (let r = litersRow + 1; r < grid.length; r++) {
+            const row = grid[r] || [];
+            const dtCell = String(row[litersCol - 1] || '').trim();
+            if (dtCell.toLowerCase().includes('total')) break;
+            const ltrs = parseFloat(String(row[litersCol] || '0').replace(/[^0-9.-]/g, '')) || 0;
+            const amt = parseFloat(String(row[litersCol + 1] || '0').replace(/[^0-9.-]/g, '')) || 0;
+            if (ltrs <= 0 && amt <= 0) break;
+            const note = String(row[litersCol + 2] || 'Petrol').trim();
+            fuelLogs.push({
+              id: `fuel_${monthId}_${r}_${Math.random().toString(36).slice(2, 6)}`,
+              monthId,
+              date: dtCell || `${monthId}-08`,
+              liters: ltrs,
+              amount: amt,
+              pricePerLiter: ltrs > 0 ? +(amt / ltrs).toFixed(2) : 0,
+              vehicleNote: note || 'Petrol'
+            });
+          }
+        }
+
+        // 5. Scan for secondary TRANSACTIONS + budget left (Pocket Money Micro-Expenses)
+        const pocketLogs = [];
+        let pmRow = -1;
+        let pmCol = -1;
+        for (let r = 0; r < Math.min(12, grid.length); r++) {
+          const row = grid[r] || [];
+          for (let c = snCol + 8; c < row.length; c++) {
+            const txt = String(row[c] || '').trim().toLowerCase();
+            if (txt === 'transactions' || txt === 'pocket transactions') {
+              pmRow = r;
+              pmCol = c;
+              break;
+            }
+          }
+          if (pmRow !== -1) break;
+        }
+        if (pmRow !== -1) {
+          for (let r = pmRow + 1; r < grid.length; r++) {
+            const row = grid[r] || [];
+            const dt = String(row[pmCol - 1] || '').trim() || `${monthId}-12`;
+            const itemDesc = String(row[pmCol] || '').trim();
+            const amt = parseFloat(String(row[pmCol + 1] || '0').replace(/[^0-9.-]/g, '')) || 0;
+            if (!itemDesc || amt <= 0) break;
+            pocketLogs.push({
+              id: `pm_${monthId}_${r}_${Math.random().toString(36).slice(2, 6)}`,
+              monthId,
+              date: dt,
+              itemDescription: itemDesc,
+              amount: amt
+            });
+          }
+        }
+
+        // 6. Scan for People / Lending / Split Repayments (NAME or pay ment of)
+        const peopleLogs = [];
+        for (let r = 8; r < grid.length; r++) {
+          const row = grid[r] || [];
+          for (let c = 0; c < row.length; c++) {
+            const txt = String(row[c] || '').trim().toLowerCase();
+            if (txt === 'name') {
+              const startCol = c - 1;
+              for (let rr = r + 1; rr < grid.length; rr++) {
+                const pRow = grid[rr] || [];
+                const dt = String(pRow[startCol] || '').trim() || `${monthId}-15`;
+                const person = String(pRow[startCol + 1] || '').trim();
+                const amt = parseFloat(String(pRow[startCol + 2] || '0').replace(/[^0-9.-]/g, '')) || 0;
+                const rawType = String(pRow[startCol + 3] || '').trim();
+                const breakdown = String(pRow[startCol + 4] || '').trim();
+                if (!person || amt <= 0) break;
+                let type = 'LENT_OR_GIVEN';
+                if (breakdown.includes('/') || rawType.toUpperCase().includes('SPLIT')) type = 'SPLIT_REPAYMENT';
+                else if (rawType.toUpperCase().includes('BORROW')) type = 'BORROWED';
+                peopleLogs.push({
+                  id: `ppl_${monthId}_${rr}_${Math.random().toString(36).slice(2, 6)}`,
+                  monthId,
+                  date: dt,
+                  personOrTitle: person,
+                  type,
+                  amount: amt,
+                  breakdownNotes: breakdown,
+                  isSettled: false
+                });
+              }
+            }
+          }
+        }
+
+        parsedSheets.push({
+          month: {
+            monthId,
+            displayName,
+            rawTabName: sheetName,
+            totalBudget: budgetCap,
+            fuelBudgetAllocation: fuelAlloc,
+            pocketMoneyAllocation: pocketAlloc
+          },
+          ledgerItems,
+          fuelLogs,
+          pocketLogs,
+          peopleLogs
+        });
+      });
+
+      const totalLedgerRecords = parsedSheets.reduce((acc, s) => acc + s.ledgerItems.length, 0);
+      const totalFuelLogs = parsedSheets.reduce((acc, s) => acc + s.fuelLogs.length, 0);
+      const totalFuelLiters = +parsedSheets.reduce((acc, s) => acc + s.fuelLogs.reduce((a, f) => a + f.liters, 0), 0).toFixed(2);
+      const totalPocketSpends = parsedSheets.reduce((acc, s) => acc + s.pocketLogs.length, 0);
+      const totalRepaymentRecords = parsedSheets.reduce((acc, s) => acc + s.peopleLogs.length, 0);
+
+      return {
+        sheets: parsedSheets,
+        totalLedgerRecords,
+        totalFuelLogs,
+        totalFuelLiters,
+        totalPocketSpends,
+        totalRepaymentRecords
+      };
+    }
+
+    // Build an in-memory multi-sheet test workbook matching the exact prompt specification
+    function generateInBrowserSampleWorkbook() {
+      const wb = XLSX.utils.book_new();
+      const specs = [
+        {
+          tab: 'July Expense Tracker ',
+          internalTitle: 'JULY Expense Tracker',
+          shiftColA: false,
+          budget: 15000,
+          ledger: [
+            [1, 'HSBC Mutual Fund SIP', 'Investment', 3000, 'Paid', 'BOI', '2026-07-05', 'Monthly SIP'],
+            [2, 'Wifi recharge', 'utlities', 471, 'Paid', 'on pnb', '2026-07-07', 'Broadband'],
+            [3, 'Mobile Recharge', 'Utilities', 350, 'Paid', 'kmb', '2026-07-08', '5G Plan'],
+            [4, 'Fuel', 'Fuel', 1000, 'Paid', 'slice', '2026-07-01', 'Fuel Envelope'],
+            [5, 'Pocket Money', 'expense', 1200, 'Paid', 'Cash', '2026-07-01', 'Pocket Envelope'],
+            [6, 'GYM Subscription', 'Gym & Fitness', 800, 'Paid', 'KMB', '2026-07-10', 'Fitness'],
+            [7, 'Electricity Bill', 'bills', 1150, 'Paid', 'BOI', '2026-07-14', 'WBSEDCL'],
+            [8, 'Credit Card Instalment', 'instalments', 2400, 'Paid', 'BOI', '2026-07-18', 'Card EMI'],
+            [9, 'Bike Spoke & Brake Service', 'Fuel & Vehicle', 420, 'Paid', 'Cash', '2026-07-21', 'Garage'],
+            [10, 'NPTEL Exam Certificate', 'Education & Certificates', 1000, 'Paid', 'KMB', '2026-07-24', 'Exam Fee'],
+            [11, 'Apparel & Raincoat', 'Shopping & Lifestyle', 1450, 'Paid', 'slice ', '2026-07-27', 'Monsoon'],
+            [12, 'Doctor & Medicine', 'Misclienious', 650, 'Pending', '-', '2026-07-29', 'Checkup']
+          ],
+          fuel: [
+            ['2026-07-03', 3.09, 350.00, 'Petrol'],
+            ['2026-07-15', 4.18, 473.64, 'Petrol']
+          ],
+          pocket: [
+            ['2026-07-04', 'Good Day Biscuit & Tea', 45],
+            ['2026-07-12', 'Street Roll & Cold Coffee', 160],
+            ['2026-07-19', 'Stationery & Printouts', 85]
+          ],
+          people: [
+            ['2026-07-11', 'Sayan Ghosh', 500, 'BORROWED', 'Emergency UPI transfer']
+          ]
+        },
+        {
+          tab: 'August Expense Tracker ',
+          internalTitle: 'AUGUST Expense Tracker',
+          shiftColA: false,
+          budget: 15500,
+          ledger: [
+            [1, 'SIP Mutual Fund', 'Investment', 3000, 'Paid', 'BOI', '2026-08-05', 'Monthly SIP'],
+            [2, 'Wifi recharge', 'Utilities', 471, 'Paid', 'PNB', '2026-08-06', 'Fiber'],
+            [3, 'Mobile Recharge', 'utlities', 350, 'Paid', 'KMB', '2026-08-08', 'Prepaid'],
+            [4, 'Fuel', 'Fuel', 1000, 'Paid', 'slice', '2026-08-01', 'Fuel Envelope'],
+            [5, 'Pocket Money', 'expenses', 1000, 'Paid', 'Cash', '2026-08-01', 'Pocket Envelope'],
+            [6, 'GYM', 'Gym & Fitness', 800, 'Paid', 'KMB', '2026-08-10', 'Monthly fee'],
+            [7, '2T Oil & Chain Lube', 'Fuel & Vehicle', 280, 'Paid', 'Cash', '2026-08-14', 'Bike care'],
+            [8, 'Loan EMI', 'loan', 2500, 'Paid', 'BOI', '2026-08-15', 'Monthly EMI'],
+            [9, 'Independence Day Outing', 'Shopping & Lifestyle', 1100, 'Paid', 'slice', '2026-08-15', 'Dining'],
+            [10, 'Rakhi Gifts for Family', 'Shopping & Lifestyle', 1600, 'Paid', 'BOI', '2026-08-19', 'Gifts'],
+            [11, 'Hostel / Mess Balance', 'General Expenses', 2200, 'Pending', 'PNB', '2026-08-26', 'Mess dues']
+          ],
+          fuel: [
+            ['2026-08-06', 3.53, 400.00, 'Petrol'],
+            ['2026-08-22', 4.41, 500.00, 'Petrol']
+          ],
+          pocket: [
+            ['2026-08-09', 'Evening Momos & Chai', 90],
+            ['2026-08-24', 'USB Type-C Cable', 220]
+          ],
+          people: [
+            ['2026-08-18', 'Dev', 350, 'LENT_OR_GIVEN', 'Shared cab & snacks']
+          ]
+        },
+        {
+          tab: 'September expense tracker  ',
+          internalTitle: 'AUGUST Expense Tracker', // Copy-pasted header quirk tested!
+          shiftColA: false,
+          budget: 16000,
+          ledger: [
+            [1, 'SIP Investment', 'Investment', 3000, 'done', 'BOI', '2026-09-05', 'Monthly SIP'],
+            [2, 'One-Time HSBC Mutual Fund', 'Investment', 3000, 'Paid', 'BOI', '2026-09-12', 'Lumpsum HSBC'],
+            [3, 'Wifi recharge', 'Utilities', 471, 'Paid', 'on pnb', '2026-09-07', 'Broadband'],
+            [4, 'Mobile Recharge', 'Utilities', 350, 'Paid', 'on kmb', '2026-09-08', 'Mobile pack'],
+            [5, 'Fuel', 'Fuel', 1000, 'Paid', 'slice', '2026-09-01', 'Fuel Envelope'],
+            [6, 'Pocket Money', 'expense', 1500, 'Paid', 'Cash', '2026-09-01', 'Pocket Envelope'],
+            [7, 'GYM', 'Gym & Fitness', 800, 'Paid', 'KMB', '2026-09-10', 'Gym fee'],
+            [8, 'Vishwakarma Puja Contribution', 'Shopping & Lifestyle', 750, 'Paid', 'Cash', '2026-09-17', 'Puja'],
+            [9, 'Bike Carburetor Tuning', 'Fuel & Vehicle', 550, 'Paid', 'KMB', '2026-09-20', 'Tuning'],
+            [10, 'Semester Reference Books', 'Education & Certificates', 1250, 'Paid', 'BOI', '2026-09-23', 'Books'],
+            [11, 'Credit Card Bill', 'instalments', 2100, 'Pending', 'slice', '2026-09-28', 'Statement']
+          ],
+          fuel: [
+            ['2026-09-05', 3.09, 350.00, 'Petrol'],
+            ['2026-09-19', 3.97, 450.00, 'Petrol']
+          ],
+          pocket: [
+            ['2026-09-07', 'EvoFox Gaming Mouse', 649],
+            ['2026-09-16', 'Biscuits & Cold Drinks', 110]
+          ],
+          people: [
+            ['2026-09-12', 'Bhai', 600, 'LENT_OR_GIVEN', 'Festival advance'],
+            ['2026-09-15', 'Ma', 1000, 'LENT_OR_GIVEN', 'Household essentials']
+          ]
+        },
+        {
+          tab: 'october  expense tracker  ',
+          internalTitle: 'OCTOBER Expense Tracker',
+          shiftColA: false,
+          budget: 16500,
+          ledger: [
+            [1, 'SIP Mutual Fund', 'Investment', 3000, 'Paid', 'BOI', '2026-10-05', 'Monthly SIP'],
+            [2, 'Wifi recharge', 'Utilities', 471, 'Paid', 'PNB', '2026-10-06', 'Broadband'],
+            [3, 'Mobile Recharge', 'Utilities', 350, 'Paid', 'KMB', '2026-10-07', 'Mobile'],
+            [4, 'Fuel', 'Fuel', 1000, 'Paid', 'slice', '2026-10-01', 'Fuel Envelope'],
+            [5, 'Pocket Money', 'expense', 1500, 'Paid', 'Cash', '2026-10-01', 'Pocket Envelope'],
+            [6, 'Durga Puja Shopping & Kurta', 'Shopping & Lifestyle', 3850, 'Paid', 'BOI', '2026-10-12', 'Pujo shopping'],
+            [7, 'Pandal Hopping & Dining', 'Shopping & Lifestyle', 2200, 'Paid', 'slice', '2026-10-18', 'Pujo dining'],
+            [8, 'GYM', 'Gym & Fitness', 800, 'Paid', 'KMB', '2026-10-10', 'Gym'],
+            [9, 'EMI & Card Dues', 'loan', 2400, 'Paid', 'BOI', '2026-10-22', 'EMI'],
+            [10, 'Consolidated Repayment to Sayan', 'Borrowed / People', 1035, 'Paid', 'KMB', '2026-10-25', 'Multi-item settlement']
+          ],
+          fuel: [
+            ['2026-10-08', 2.26, 256.00, 'Petrol']
+          ],
+          pocket: [
+            ['2026-10-14', 'Pujo Egg Roll & Fuchka', 240]
+          ],
+          people: [
+            ['2026-10-21', 'Consolidated Repayment', 1331, 'SPLIT_REPAYMENT', 'mobile recharge - 350 / wifi recharge - 471 / 2t oil 500 ml - 160 / petrol 3lt - 350']
+          ]
+        },
+        {
+          tab: 'November  expense tracker  ',
+          internalTitle: 'NOVEMBER Expense Tracker',
+          shiftColA: true, // Shifted to Column A!
+          budget: 14000,
+          ledger: [
+            [1, 'SIP Mutual Fund', 'Investment', 3000, 'Paid', 'BOI', '2026-11-05', 'Monthly SIP'],
+            [2, 'Wifi recharge', 'utlities', 471, 'Paid', 'on pnb', '2026-11-06', 'Broadband'],
+            [3, 'Mobile Recharge', 'Utilities', 350, 'Paid', 'kmb', '2026-11-07', 'Recharge'],
+            [4, 'Fuel', 'Fuel', 1000, 'Paid', 'slice', '2026-11-01', 'Fuel Envelope'],
+            [5, 'Pocket Money', 'expense', 1000, 'Paid', 'Cash', '2026-11-01', 'Pocket Envelope'],
+            [6, 'GYM Membership', 'Gym & Fitness', 800, 'Paid', 'KMB', '2026-11-10', 'Gym'],
+            [7, 'Kali Puja & Diwali Sweets', 'Shopping & Lifestyle', 1350, 'Paid', 'Cash', '2026-11-02', 'Diwali'],
+            [8, 'Electricity Bill', 'bills', 980, 'Paid', 'BOI', '2026-11-14', 'Bill'],
+            [9, 'Bike Tyre Tube & Service', 'Fuel & Vehicle', 850, 'Paid', 'KMB', '2026-11-17', 'Tyre service'],
+            [10, 'EMI Instalment', 'instalments', 2400, 'Pending', 'BOI', '2026-11-20', 'Card EMI'],
+            [11, 'Winter Hoodie', 'Shopping & Lifestyle', 1450, 'Pending', 'slice', '2026-11-24', 'Winter wear'],
+            [12, 'Cloud Certification Fee', 'Education & Certificates', 455, 'Pending', 'KMB', '2026-11-27', 'Over-budget trigger (-₹106)']
+          ],
+          fuel: [
+            ['2026-11-09', 2.00, 226.67, 'Petrol']
+          ],
+          pocket: [
+            ['2026-11-11', 'Roasted Almonds & Coffee', 175]
+          ],
+          people: []
+        }
+      ];
+
+      specs.forEach(sp => {
+        const rows = [];
+        const pad = sp.shiftColA ? [] : [''];
+        rows.push([]);
+        rows.push([...pad, sp.internalTitle]);
+        rows.push([]);
+        // Header row (index 3)
+        const hdr = [...pad, 'Sn no.', 'Description', 'Category', 'Amount', 'Status', 'ON ACC', 'Date', 'Notes', '', 'Final Data', '', 'DATE', 'LITERS', 'AMOUNT', 'NOTE', '', 'DATE', 'TRANSACTIONS', 'AMOUNT', 'budget left'];
+        rows.push(hdr);
+
+        const maxLen = Math.max(sp.ledger.length, sp.fuel.length + 2, sp.pocket.length + 1, 12);
+        for (let i = 0; i < maxLen; i++) {
+          const r = new Array(pad.length + 21).fill('');
+          if (i < sp.ledger.length) {
+            const l = sp.ledger[i];
+            for (let k = 0; k < l.length; k++) r[pad.length + k] = l[k];
+          }
+          if (i === 0) {
+            r[pad.length + 9] = 'Budget';
+            r[pad.length + 10] = sp.budget;
+          }
+          if (i < sp.fuel.length) {
+            const f = sp.fuel[i];
+            r[pad.length + 11] = f[0];
+            r[pad.length + 12] = f[1];
+            r[pad.length + 13] = f[2];
+            r[pad.length + 14] = f[3];
+          } else if (i === sp.fuel.length) {
+            r[pad.length + 11] = 'TOTAL LTRS';
+          }
+          if (i < sp.pocket.length) {
+            const p = sp.pocket[i];
+            r[pad.length + 16] = p[0];
+            r[pad.length + 17] = p[1];
+            r[pad.length + 18] = p[2];
+          }
+          rows.push(r);
+        }
+
+        if (sp.people.length > 0) {
+          rows.push([]);
+          const pHdr = new Array(pad.length + 16).fill('');
+          pHdr[pad.length + 11] = 'DATE';
+          pHdr[pad.length + 12] = 'NAME';
+          pHdr[pad.length + 13] = 'AMOUNT';
+          pHdr[pad.length + 14] = 'TYPE';
+          pHdr[pad.length + 15] = 'pay ment of';
+          rows.push(pHdr);
+          sp.people.forEach(pl => {
+            const pr = new Array(pad.length + 16).fill('');
+            pr[pad.length + 11] = pl[0];
+            pr[pad.length + 12] = pl[1];
+            pr[pad.length + 13] = pl[2];
+            pr[pad.length + 14] = pl[3];
+            pr[pad.length + 15] = pl[4];
+            rows.push(pr);
+          });
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, sp.tab);
+      });
+
+      return wb;
+    }
+
+    function openImportPreviewModal(preview) {
+      pendingExcelImportPreview = preview;
+      const modal = document.getElementById('importPreviewModal');
+      const summaryEl = document.getElementById('importPreviewSummaryText');
+      const breakdownEl = document.getElementById('importSheetBreakdownList');
+
+      summaryEl.innerHTML = `Found <strong>${preview.sheets.length} Monthly Sheets</strong>, <strong>${preview.totalLedgerRecords} Main Ledger Records</strong>, <strong>${preview.totalFuelLogs} Fuel Logs (${preview.totalFuelLiters} L)</strong>, <strong>${preview.totalPocketSpends} Pocket Money Micro-Spends</strong>, and <strong>${preview.totalRepaymentRecords} Repayment Records</strong>. Import into Cocoa?`;
+
+      breakdownEl.innerHTML = preview.sheets.map(s => `
+        <div class="p-3 rounded-xl bg-white border border-[#E5D5C5] flex items-center justify-between text-xs">
+          <div>
+            <span class="font-bold text-[#23120B]">${s.month.displayName}</span>
+            <span class="text-[11px] text-[#6E5041] ml-1">(Tab: "${s.month.rawTabName.trim()}")</span>
+            <div class="text-[11px] text-[#6E5041] mt-0.5">
+              ${s.ledgerItems.length} ledger rows • ${s.fuelLogs.length} fuel logs • ${s.pocketLogs.length} pocket spends • ${s.peopleLogs.length} people logs
+            </div>
+          </div>
+          <span class="font-mono-num font-bold text-[#5D3A1A]">${formatINR(s.month.totalBudget)}</span>
+        </div>
+      `).join('');
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      triggerHaptic('LIGHT_TICK', 'Haptic: Preview Ready');
+    }
+
+    function commitExcelImportPreview() {
+      if (!pendingExcelImportPreview) return;
+      pendingExcelImportPreview.sheets.forEach(bundle => {
+        // Remove existing month data if re-importing same monthId
+        appState.months = appState.months.filter(m => m.monthId !== bundle.month.monthId);
+        appState.ledger = appState.ledger.filter(t => t.monthId !== bundle.month.monthId);
+        appState.fuelLogs = appState.fuelLogs.filter(f => f.monthId !== bundle.month.monthId);
+        appState.pocketLogs = appState.pocketLogs.filter(p => p.monthId !== bundle.month.monthId);
+        appState.peopleLogs = appState.peopleLogs.filter(p => p.monthId !== bundle.month.monthId);
+
+        appState.months.push(bundle.month);
+        appState.ledger.push(...bundle.ledgerItems);
+        appState.fuelLogs.push(...bundle.fuelLogs);
+        appState.pocketLogs.push(...bundle.pocketLogs);
+        appState.peopleLogs.push(...bundle.peopleLogs);
+      });
+
+      appState.months.sort((a, b) => a.monthId.localeCompare(b.monthId));
+      if (appState.months.length > 0) {
+        appState.selectedMonthId = appState.months[appState.months.length - 1].monthId;
+      }
+
+      pendingExcelImportPreview = null;
+      document.getElementById('importPreviewModal').classList.add('hidden');
+      document.getElementById('importPreviewModal').classList.remove('flex');
+      saveState();
+      triggerHaptic('MEDIUM_CONFIRM', 'Haptic: CONFIRM (Workbook Imported)');
+      renderApp();
+    }
+
+    // ==========================================
+    // RECURRING MONTHLY COMMITMENTS CLONER
+    // ==========================================
+    function cloneRecurringToMonth(monthId) {
+      const defaults = [
+        { desc: 'SIP Mutual Fund', cat: 'Investments', amt: 3000, acc: 'BOI', anchor: 'NONE', note: 'Recurring Monthly SIP' },
+        { desc: 'Wifi recharge', cat: 'Utilities & Bills', amt: 471, acc: 'PNB', anchor: 'NONE', note: 'Recurring Broadband' },
+        { desc: 'Mobile Recharge', cat: 'Utilities & Bills', amt: 350, acc: 'KMB', anchor: 'NONE', note: 'Recurring Mobile Plan' },
+        { desc: 'Fuel', cat: 'Fuel & Vehicle', amt: 1000, acc: 'slice', anchor: 'FUEL_ANCHOR', note: 'Monthly Fuel Envelope' },
+        { desc: 'Pocket Money', cat: 'Pocket Money', amt: 1200, acc: 'Cash', anchor: 'POCKET_MONEY_ANCHOR', note: 'Daily Micro-Spend Envelope' },
+        { desc: 'GYM', cat: 'Gym & Fitness', amt: 800, acc: 'KMB', anchor: 'NONE', note: 'Monthly Fitness Membership' }
+      ];
+      const existingCount = appState.ledger.filter(t => t.monthId === monthId).length;
+      defaults.forEach((item, idx) => {
+        appState.ledger.push({
+          id: `tx_${monthId}_rec_${Date.now()}_${idx}`,
+          monthId,
+          serialNo: existingCount + idx + 1,
+          description: item.desc,
+          category: item.cat,
+          amount: item.amt,
+          status: 'PENDING',
+          accountTag: item.acc,
+          createdAtDate: `${monthId}-05`,
+          notes: item.note,
+          isSubBudgetAnchor: item.anchor
+        });
+      });
+    }
+
+    // ==========================================
+    // UI RENDERING ENGINE
+    // ==========================================
+    function renderApp() {
+      // Onboarding gate
+      const onboardEl = document.getElementById('onboardingOverlay');
+      if (!appState.legalAccepted) {
+        onboardEl.classList.remove('hidden');
+      } else {
+        onboardEl.classList.add('hidden');
+      }
+
+      // Haptics button label
+      document.getElementById('hapticStatusIcon').textContent = appState.hapticsEnabled ? '📳' : '🔕';
+      document.getElementById('hapticStatusLabel').textContent = appState.hapticsEnabled ? 'Haptics On' : 'Haptics Muted';
+
+      // Render Month Pill Carousel
+      renderMonthCarousel();
+
+      // Check if database is empty
+      const hasMonths = appState.months.length > 0;
+      const emptyBanner = document.getElementById('emptyVaultState');
+      const sVault = document.getElementById('screenVault');
+      const sTimelines = document.getElementById('screenTimelines');
+      const sAnalytics = document.getElementById('screenAnalytics');
+      const sSettings = document.getElementById('screenSettings');
+
+      [sVault, sTimelines, sAnalytics, sSettings].forEach(el => el.classList.add('hidden'));
+
+      if (!hasMonths && appState.activeTab !== 'settings') {
+        emptyBanner.classList.remove('hidden');
+      } else {
+        emptyBanner.classList.add('hidden');
+        if (appState.activeTab === 'vault') {
+          sVault.classList.remove('hidden');
+          renderMonthlyVaultScreen();
+        } else if (appState.activeTab === 'timelines') {
+          sTimelines.classList.remove('hidden');
+          renderTimelinesScreen();
+        } else if (appState.activeTab === 'analytics') {
+          sAnalytics.classList.remove('hidden');
+          renderAnalyticsScreen();
+        } else if (appState.activeTab === 'settings') {
+          sSettings.classList.remove('hidden');
+        }
+      }
+
+      // Update Bottom Nav active styles
+      document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+        const tab = btn.getAttribute('data-tab');
+        if (tab === appState.activeTab) {
+          btn.className = 'bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl bg-[#8B5A2B] text-white transition';
+        } else {
+          btn.className = 'bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-[#E5D5C5] hover:bg-white/10 transition';
+        }
+      });
+    }
+
+    function renderMonthCarousel() {
+      const container = document.getElementById('monthCarouselContainer');
+      const pillsHtml = appState.months.map(m => {
+        const isSelected = m.monthId === appState.selectedMonthId;
+        const shortName = m.displayName.replace('January', 'Jan').replace('February', 'Feb').replace('March', 'Mar').replace('April', 'Apr').replace('August', 'Aug').replace('September', 'Sep').replace('October', 'Oct').replace('November', 'Nov').replace('December', 'Dec');
+        return `
+          <button type="button" data-monthid="${m.monthId}" class="month-pill-btn shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition ${
+            isSelected
+              ? 'bg-[#2B1710] text-white shadow-sm border border-[#5D3A1A]'
+              : 'bg-[#F7EFE6] text-[#6E5041] hover:bg-[#EDE0D1] border border-[#E5D5C5]'
+          }">
+            ${shortName}
+          </button>
+        `;
+      }).join('');
+
+      container.innerHTML = pillsHtml + `
+        <button type="button" id="carouselAddMonthBtn" class="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-100 hover:bg-amber-200 text-[#5D3A1A] border border-amber-300 transition">
+          + New Month
+        </button>
+      `;
+
+      container.querySelectorAll('.month-pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.selectedMonthId = btn.getAttribute('data-monthid');
+          saveState();
+          triggerHaptic('LIGHT_TICK', 'Haptic: CLOCK_TICK (Month Switched)');
+          renderApp();
+        });
+      });
+
+      const addBtn = document.getElementById('carouselAddMonthBtn');
+      if (addBtn) {
+        addBtn.addEventListener('click', () => openMonthModal('create'));
+      }
+    }
+
+    function getActiveMonth() {
+      return appState.months.find(m => m.monthId === appState.selectedMonthId) || appState.months[0] || null;
+    }
+
+    function renderMonthlyVaultScreen() {
+      const activeMonth = getActiveMonth();
+      if (!activeMonth) return;
+      appState.selectedMonthId = activeMonth.monthId;
+
+      const monthLedger = appState.ledger.filter(t => t.monthId === activeMonth.monthId);
+      const monthFuel = appState.fuelLogs.filter(f => f.monthId === activeMonth.monthId);
+      const monthPocket = appState.pocketLogs.filter(p => p.monthId === activeMonth.monthId);
+
+      // Sync Fuel & Pocket allocations from main ledger anchors if present
+      const fuelAnchorRow = monthLedger.find(t => t.isSubBudgetAnchor === 'FUEL_ANCHOR' || t.description.toLowerCase() === 'fuel');
+      const pocketAnchorRow = monthLedger.find(t => t.isSubBudgetAnchor === 'POCKET_MONEY_ANCHOR' || t.description.toLowerCase().includes('pocket money'));
+      const fuelAlloc = fuelAnchorRow ? fuelAnchorRow.amount : (activeMonth.fuelBudgetAllocation || 1000);
+      const pocketAlloc = pocketAnchorRow ? pocketAnchorRow.amount : (activeMonth.pocketMoneyAllocation || 1000);
+
+      // Hero Final Data Calculations
+      const paidTotal = monthLedger.filter(t => t.status === 'PAID').reduce((a, b) => a + b.amount, 0);
+      const pendingTotal = monthLedger.filter(t => t.status === 'PENDING').reduce((a, b) => a + b.amount, 0);
+      const totalSpent = paidTotal + pendingTotal;
+      const remaining = activeMonth.totalBudget - totalSpent;
+      const burnPct = activeMonth.totalBudget > 0 ? Math.min(100, Math.round((totalSpent / activeMonth.totalBudget) * 100)) : 0;
+
+      document.getElementById('vaultActiveMonthBadge').textContent = activeMonth.displayName;
+      document.getElementById('heroBudgetValue').textContent = formatINR(activeMonth.totalBudget);
+      document.getElementById('heroSpentValue').textContent = formatINR(totalSpent);
+      document.getElementById('heroPaidSub').textContent = `Paid: ${formatINR(paidTotal)}`;
+      document.getElementById('heroPendingSub').textContent = `Pending: ${formatINR(pendingTotal)}`;
+      document.getElementById('heroRemainingValue').textContent = formatINR(remaining);
+      document.getElementById('heroBurnPercentText').textContent = `${burnPct}% of monthly budget committed`;
+
+      const statusPill = document.getElementById('heroStatusPill');
+      const remValEl = document.getElementById('heroRemainingValue');
+      const progBar = document.getElementById('heroProgressBar');
+      progBar.style.width = `${burnPct}%`;
+
+      if (remaining < 0) {
+        statusPill.textContent = '⚠️ Over Budget';
+        statusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#DC2626] text-white animate-alert-pulse';
+        remValEl.className = 'text-2xl font-mono-num font-extrabold text-[#EF4444] mt-1';
+        progBar.className = 'h-full rounded-full transition-all duration-500 bg-[#DC2626]';
+      } else {
+        statusPill.textContent = '✓ Within Budget';
+        statusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300';
+        remValEl.className = 'text-2xl font-mono-num font-extrabold text-emerald-400 mt-1';
+        progBar.className = 'h-full rounded-full transition-all duration-500 bg-gradient-to-r from-[#8B5A2B] to-amber-400';
+      }
+
+      // Dual Sub-Budget Live Gauges
+      const fuelSpent = monthFuel.reduce((a, b) => a + b.amount, 0);
+      const fuelLiters = monthFuel.reduce((a, b) => a + b.liters, 0);
+      const fuelLeft = fuelAlloc - fuelSpent;
+      const fuelPct = fuelAlloc > 0 ? Math.min(100, Math.round((fuelSpent / fuelAlloc) * 100)) : 0;
+
+      document.getElementById('fuelStatusBadge').textContent = `${fuelLiters.toFixed(2)} L Logged`;
+      document.getElementById('fuelAllocatedVal').textContent = formatINR(fuelAlloc);
+      document.getElementById('fuelSpentVal').textContent = formatINR(fuelSpent);
+      const fuelLeftEl = document.getElementById('fuelLeftVal');
+      fuelLeftEl.textContent = formatINR(fuelLeft);
+      fuelLeftEl.className = `font-mono-num font-bold text-xs sm:text-sm ${fuelLeft < 0 ? 'text-[#DC2626]' : 'text-emerald-600'}`;
+      const fuelBar = document.getElementById('fuelGaugeBar');
+      fuelBar.style.width = `${fuelPct}%`;
+      fuelBar.className = `h-full transition-all duration-300 ${fuelLeft < 0 ? 'bg-[#DC2626]' : 'bg-[#F59E0B]'}`;
+
+      const pocketSpent = monthPocket.reduce((a, b) => a + b.amount, 0);
+      const pocketLeft = pocketAlloc - pocketSpent;
+      const pocketPct = pocketAlloc > 0 ? Math.min(100, Math.round((pocketSpent / pocketAlloc) * 100)) : 0;
+
+      document.getElementById('pocketCountBadge').textContent = `${monthPocket.length} Micro-Spends`;
+      document.getElementById('pocketAllocatedVal').textContent = formatINR(pocketAlloc);
+      document.getElementById('pocketSpentVal').textContent = formatINR(pocketSpent);
+      const pocketLeftEl = document.getElementById('pocketLeftVal');
+      pocketLeftEl.textContent = formatINR(pocketLeft);
+      pocketLeftEl.className = `font-mono-num font-bold text-xs sm:text-sm ${pocketLeft < 0 ? 'text-[#DC2626]' : 'text-emerald-600'}`;
+      const pocketBar = document.getElementById('pocketGaugeBar');
+      pocketBar.style.width = `${pocketPct}%`;
+      pocketBar.className = `h-full transition-all duration-300 ${pocketLeft < 0 ? 'bg-[#DC2626]' : 'bg-[#F97316]'}`;
+
+      // Render Account Filter Strip (ON ACC)
+      renderAccountFilterStrip(monthLedger);
+
+      // Render Categorized Main Ledger List
+      renderMainLedgerList(monthLedger);
+    }
+
+    function renderAccountFilterStrip(monthLedger) {
+      const strip = document.getElementById('accountFilterStrip');
+      const accounts = ['ALL', 'BOI', 'KMB', 'PNB', 'slice', 'Cash', 'PENDING_ONLY'];
+
+      strip.innerHTML = accounts.map(acc => {
+        let subTotal = 0;
+        let label = acc;
+        if (acc === 'ALL') {
+          subTotal = monthLedger.reduce((a, b) => a + b.amount, 0);
+          label = 'All Accounts';
+        } else if (acc === 'PENDING_ONLY') {
+          subTotal = monthLedger.filter(t => t.status === 'PENDING').reduce((a, b) => a + b.amount, 0);
+          label = '⏳ Pending Only';
+        } else {
+          subTotal = monthLedger.filter(t => t.accountTag === acc).reduce((a, b) => a + b.amount, 0);
+        }
+        const active = appState.accountFilter === acc;
+        return `
+          <button type="button" data-accfilter="${acc}" class="acc-filter-chip shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
+            active
+              ? 'bg-[#2B1710] text-white border-[#2B1710] shadow-sm'
+              : 'bg-white text-[#23120B] border-[#E5D5C5] hover:bg-[#F7EFE6]'
+          }">
+            <span>${label}</span>
+            <span class="font-mono-num text-[11px] ${active ? 'text-amber-300' : 'text-[#6E5041]'}">${formatINR(subTotal)}</span>
+          </button>
+        `;
+      }).join('');
+
+      strip.querySelectorAll('.acc-filter-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.accountFilter = btn.getAttribute('data-accfilter');
+          triggerHaptic('LIGHT_TICK', `Filter: ${appState.accountFilter}`);
+          renderMonthlyVaultScreen();
+        });
+      });
+    }
+
+    function renderMainLedgerList(monthLedger) {
+      const container = document.getElementById('mainLedgerListContainer');
+      const q = (appState.searchQuery || '').toLowerCase();
+
+      const filtered = monthLedger.filter(tx => {
+        if (appState.accountFilter === 'PENDING_ONLY' && tx.status !== 'PENDING') return false;
+        if (appState.accountFilter !== 'ALL' && appState.accountFilter !== 'PENDING_ONLY' && tx.accountTag !== appState.accountFilter) return false;
+        if (q) {
+          const hay = `${tx.description} ${tx.category} ${tx.accountTag} ${tx.notes}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="neo-card-white rounded-2xl p-6 text-center text-xs text-[#6E5041]">
+            No ledger records match the current filter. Tap <strong>+ Add Expense</strong> above to log an entry.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(tx => {
+        const catMeta = CATEGORY_META[tx.category] || CATEGORY_META['General Expenses'];
+        const accMeta = ACCOUNT_META[tx.accountTag] || ACCOUNT_META['Unspecified'];
+        const isPaid = tx.status === 'PAID';
+
+        return `
+          <div id="ledgerCard_${tx.id}" class="neo-card-white rounded-2xl p-3.5 sm:p-4 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <!-- Vibrant Semantic Category Icon Pill -->
+              <div class="w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center text-lg font-bold shadow-sm" style="background-color: ${catMeta.pillBg}; color: ${catMeta.iconColor};">
+                ${catMeta.icon}
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-[11px] font-mono-num font-bold text-[#6E5041]">#${tx.serialNo}</span>
+                  <h4 class="font-display font-bold text-sm text-[#23120B] truncate">${tx.description}</h4>
+                  ${tx.isSubBudgetAnchor !== 'NONE' ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900">Sub-Budget Anchor</span>` : ''}
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 mt-1">
+                  <span class="text-[11px] font-medium text-[#6E5041]">${tx.category}</span>
+                  <span class="text-[#E5D5C5]">•</span>
+                  <!-- Account Badge (ON ACC) -->
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wide" style="background-color: ${accMeta.bg}; color: ${accMeta.text}; border: 1px solid ${accMeta.border};">
+                    ${accMeta.label}
+                  </span>
+                  <span class="text-[11px] font-mono-num text-[#6E5041]">${tx.createdAtDate}</span>
+                  ${tx.notes ? `<span class="text-[11px] text-[#8B5A2B] italic truncate max-w-[180px]">"${tx.notes}"</span>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Monetary Figure & Interactive Controls -->
+            <div class="flex items-center gap-2.5 ml-auto">
+              <div class="text-right">
+                <div class="font-mono-num font-extrabold text-sm sm:text-base text-[#23120B]">${formatINR(tx.amount)}</div>
+                <button type="button" data-toggleid="${tx.id}" class="toggle-status-btn mt-0.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold transition ${
+                  isPaid
+                    ? 'bg-[#D1FAE5] text-[#065F46] border border-[#10B981]'
+                    : 'bg-[#FEF3C7] text-[#92400E] border border-[#F59E0B]'
+                }">
+                  <span>${isPaid ? '✓ Paid' : '⏳ Pending'}</span>
+                </button>
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <button type="button" data-editid="${tx.id}" title="Edit Record" class="edit-tx-btn p-1.5 rounded-lg bg-[#F7EFE6] hover:bg-[#EDE0D1] text-[#23120B] text-xs">✏️</button>
+                <button type="button" data-delid="${tx.id}" title="Delete Record" class="del-tx-btn p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs">🗑️</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Attach listeners for status toggle, edit, delete
+      container.querySelectorAll('.toggle-status-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-toggleid');
+          const tx = appState.ledger.find(t => t.id === id);
+          if (tx) {
+            tx.status = tx.status === 'PAID' ? 'PENDING' : 'PAID';
+            const cardEl = document.getElementById(`ledgerCard_${id}`);
+            if (cardEl) cardEl.classList.add('choco-ripple-anim');
+            saveState();
+            triggerHaptic('MEDIUM_CONFIRM', `Haptic: CONFIRM (${tx.description} → ${tx.status})`);
+            setTimeout(() => renderMonthlyVaultScreen(), 220);
+          }
+        });
+      });
+
+      container.querySelectorAll('.edit-tx-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-editid');
+          openExpenseModal(id);
+        });
+      });
+
+      container.querySelectorAll('.del-tx-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-delid');
+          appState.ledger = appState.ledger.filter(t => t.id !== id);
+          saveState();
+          triggerHaptic('HEAVY_WARNING', 'Haptic: REJECT (Record Deleted)');
+          renderMonthlyVaultScreen();
+        });
+      });
+    }
+
+    // ==========================================
+    // SCREEN 2: TIMELINES HUB RENDERER
+    // ==========================================
+    function renderTimelinesScreen() {
+      const activeMonth = getActiveMonth();
+      if (!activeMonth) return;
+
+      document.getElementById('timelineMonthLabel').textContent = activeMonth.displayName;
+
+      // Toggle sub-tab button styles
+      document.querySelectorAll('.tl-subtab-btn').forEach(btn => {
+        const st = btn.getAttribute('data-subtab');
+        if (st === appState.activeTimelineSubTab) {
+          btn.className = 'tl-subtab-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#2B1710] text-white shadow';
+        } else {
+          btn.className = 'tl-subtab-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-[#23120B] border border-[#E5D5C5]';
+        }
+      });
+
+      const vMaster = document.getElementById('tlViewMaster');
+      const vFuel = document.getElementById('tlViewFuel');
+      const vPocket = document.getElementById('tlViewPocket');
+      const vPeople = document.getElementById('tlViewPeople');
+      [vMaster, vFuel, vPocket, vPeople].forEach(v => v.classList.add('hidden'));
+
+      const mId = activeMonth.monthId;
+      const monthLedger = appState.ledger.filter(t => t.monthId === mId);
+      const monthFuel = appState.fuelLogs.filter(f => f.monthId === mId);
+      const monthPocket = appState.pocketLogs.filter(p => p.monthId === mId);
+      const monthPeople = appState.peopleLogs.filter(p => p.monthId === mId);
+
+      if (appState.activeTimelineSubTab === 'master') {
+        vMaster.classList.remove('hidden');
+        const events = [
+          ...monthLedger.map(t => ({ date: t.createdAtDate, title: t.description, badge: t.category, amount: t.amount, color: '#2B1710', sub: `Main Ledger • ${t.accountTag} • ${t.status}` })),
+          ...monthFuel.map(f => ({ date: f.date, title: `${f.vehicleNote} Refuel (${f.liters} L)`, badge: 'Fuel Log', amount: f.amount, color: '#F59E0B', sub: `Implied Rate: ₹${(f.amount / (f.liters || 1)).toFixed(2)}/L` })),
+          ...monthPocket.map(p => ({ date: p.date, title: p.itemDescription, badge: 'Pocket Micro-Spend', amount: p.amount, color: '#F97316', sub: 'Drawn from Pocket Money Envelope' })),
+          ...monthPeople.map(p => ({ date: p.date, title: p.personOrTitle, badge: p.type, amount: p.amount, color: '#6366F1', sub: p.breakdownNotes || 'People & Lending' }))
+        ].sort((a, b) => a.date.localeCompare(b.date));
+
+        const masterEl = document.getElementById('masterTimelineContainer');
+        if (events.length === 0) {
+          masterEl.innerHTML = `<div class="neo-card-white rounded-2xl p-5 text-xs text-[#6E5041]">No dated events logged in ${activeMonth.displayName} yet.</div>`;
+        } else {
+          masterEl.innerHTML = events.map(ev => `
+            <div class="relative neo-card-white rounded-2xl p-3.5 flex items-center justify-between gap-3">
+              <span class=" -left-[31px] w-3.5 h-3.5 rounded-full border-2 border-white shadow" style="background-color: ${ev.color}"></span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono-num text-[11px] font-bold text-[#8B5A2B]">${ev.date}</span>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F7EFE6] text-[#5D3A1A]">${ev.badge}</span>
+                </div>
+                <div class="font-display font-bold text-sm text-[#23120B] mt-0.5">${ev.title}</div>
+                <div class="text-[11px] text-[#6E5041]">${ev.sub}</div>
+              </div>
+              <div class="font-mono-num font-extrabold text-sm text-[#23120B]">${formatINR(ev.amount)}</div>
+            </div>
+          `).join('');
+        }
+      } else if (appState.activeTimelineSubTab === 'fuel') {
+        vFuel.classList.remove('hidden');
+        const fuelAnchorRow = monthLedger.find(t => t.isSubBudgetAnchor === 'FUEL_ANCHOR' || t.description.toLowerCase() === 'fuel');
+        const alloc = fuelAnchorRow ? fuelAnchorRow.amount : (activeMonth.fuelBudgetAllocation || 1000);
+        let runningSpent = 0;
+        let totalL = 0;
+        const listEl = document.getElementById('fuelTimelineList');
+
+        if (monthFuel.length === 0) {
+          listEl.innerHTML = `<div class="neo-card-white rounded-2xl p-5 text-xs text-[#6E5041]">No fuel refills logged for ${activeMonth.displayName}. Tap <strong>+ Refuel (Log Liters)</strong> to add one.</div>`;
+        } else {
+          listEl.innerHTML = monthFuel.map(f => {
+            runningSpent += f.amount;
+            totalL += f.liters;
+            const leftAfter = alloc - runningSpent;
+            const rate = f.liters > 0 ? (f.amount / f.liters).toFixed(2) : '0.00';
+            return `
+              <div class="neo-card-white rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-[#FEF3C7] text-[#F59E0B] flex items-center justify-center font-bold">⛽</div>
+                  <div>
+                    <div class="font-display font-bold text-sm text-[#23120B]">${f.liters.toFixed(2)} Liters • ${f.vehicleNote}</div>
+                    <div class="text-[11px] text-[#6E5041] font-mono-num">${f.date} • Rate: ₹${rate}/L</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="text-right">
+                    <div class="font-mono-num font-extrabold text-sm text-[#23120B]">${formatINR(f.amount)}</div>
+                    <div class="font-mono-num text-[11px] font-bold ${leftAfter < 0 ? 'text-red-600' : 'text-emerald-700'}">Fuel Budget Left: ${formatINR(leftAfter)}</div>
+                  </div>
+                  <button type="button" data-delfuel="${f.id}" class="del-fuel-btn p-1.5 rounded-lg bg-red-50 text-red-700 text-xs">🗑️</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+        document.getElementById('fuelSummarySubtext').textContent = `Allocated: ${formatINR(alloc)} | Logged: ${totalL.toFixed(2)} L (${formatINR(runningSpent)}) | Remaining: ${formatINR(alloc - runningSpent)}`;
+
+        listEl.querySelectorAll('.del-fuel-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-delfuel');
+            appState.fuelLogs = appState.fuelLogs.filter(f => f.id !== id);
+            saveState();
+            triggerHaptic('HEAVY_WARNING', 'Fuel Log Deleted');
+            renderTimelinesScreen();
+          });
+        });
+      } else if (appState.activeTimelineSubTab === 'pocket') {
+        vPocket.classList.remove('hidden');
+        const pocketAnchorRow = monthLedger.find(t => t.isSubBudgetAnchor === 'POCKET_MONEY_ANCHOR' || t.description.toLowerCase().includes('pocket money'));
+        const alloc = pocketAnchorRow ? pocketAnchorRow.amount : (activeMonth.pocketMoneyAllocation || 1000);
+        let running = 0;
+        const listEl = document.getElementById('pocketTimelineList');
+
+        if (monthPocket.length === 0) {
+          listEl.innerHTML = `<div class="neo-card-white rounded-2xl p-5 text-xs text-[#6E5041]">No daily pocket money micro-spends logged for ${activeMonth.displayName}.</div>`;
+        } else {
+          listEl.innerHTML = monthPocket.map(p => {
+            running += p.amount;
+            const left = alloc - running;
+            return `
+              <div class="neo-card-white rounded-2xl p-4 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-[#FFEDD5] text-[#F97316] flex items-center justify-center font-bold">☕</div>
+                  <div>
+                    <div class="font-display font-bold text-sm text-[#23120B]">${p.itemDescription}</div>
+                    <div class="text-[11px] font-mono-num text-[#6E5041]">${p.date}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="text-right">
+                    <div class="font-mono-num font-extrabold text-sm text-[#23120B]">${formatINR(p.amount)}</div>
+                    <div class="font-mono-num text-[11px] font-bold ${left < 0 ? 'text-red-600' : 'text-emerald-700'}">Pocket Left: ${formatINR(left)}</div>
+                  </div>
+                  <button type="button" data-delpocket="${p.id}" class="del-pocket-btn p-1.5 rounded-lg bg-red-50 text-red-700 text-xs">🗑️</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+        document.getElementById('pocketSummarySubtext').textContent = `Allocated: ${formatINR(alloc)} | Micro-Spent: ${formatINR(running)} | Remaining: ${formatINR(alloc - running)}`;
+
+        listEl.querySelectorAll('.del-pocket-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-delpocket');
+            appState.pocketLogs = appState.pocketLogs.filter(p => p.id !== id);
+            saveState();
+            triggerHaptic('HEAVY_WARNING', 'Pocket Entry Deleted');
+            renderTimelinesScreen();
+          });
+        });
+      } else if (appState.activeTimelineSubTab === 'people') {
+        vPeople.classList.remove('hidden');
+        const listEl = document.getElementById('peopleTimelineList');
+        if (monthPeople.length === 0) {
+          listEl.innerHTML = `<div class="neo-card-white rounded-2xl p-5 text-xs text-[#6E5041]">No People Lending or Consolidated Split Repayment entries logged for ${activeMonth.displayName}.</div>`;
+        } else {
+          listEl.innerHTML = monthPeople.map(p => {
+            const chips = p.breakdownNotes
+              ? p.breakdownNotes.split('/').map(s => s.trim()).filter(Boolean)
+              : [];
+            return `
+              <div class="neo-card-white rounded-2xl p-4 space-y-2.5">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-[#E0E7FF] text-[#6366F1] flex items-center justify-center font-bold">🤝</div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-display font-bold text-sm text-[#23120B]">${p.personOrTitle}</span>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">${p.type}</span>
+                      </div>
+                      <div class="text-[11px] font-mono-num text-[#6E5041]">${p.date}</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono-num font-extrabold text-sm text-[#23120B]">${formatINR(p.amount)}</span>
+                    <button type="button" data-settleppl="${p.id}" class="settle-ppl-btn px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                      p.isSettled ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                    }">
+                      ${p.isSettled ? '✓ Settled' : 'Mark Settled'}
+                    </button>
+                    <button type="button" data-delppl="${p.id}" class="del-ppl-btn p-1.5 rounded-lg bg-red-50 text-red-700 text-xs">🗑️</button>
+                  </div>
+                </div>
+                ${chips.length > 0 ? `
+                  <div class="flex flex-wrap gap-1.5 pt-1 border-t border-[#E5D5C5]">
+                    ${chips.map(c => `<span class="px-2.5 py-1 rounded-lg bg-[#F7EFE6] text-[#23120B] font-mono-num text-[11px] font-semibold border border-[#E5D5C5]">🔹 ${c}</span>`).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        }
+
+        listEl.querySelectorAll('.settle-ppl-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-settleppl');
+            const rec = appState.peopleLogs.find(x => x.id === id);
+            if (rec) {
+              rec.isSettled = !rec.isSettled;
+              saveState();
+              triggerHaptic('MEDIUM_CONFIRM', 'Settlement Updated');
+              renderTimelinesScreen();
+            }
+          });
+        });
+
+        listEl.querySelectorAll('.del-ppl-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-delppl');
+            appState.peopleLogs = appState.peopleLogs.filter(x => x.id !== id);
+            saveState();
+            triggerHaptic('HEAVY_WARNING', 'Record Deleted');
+            renderTimelinesScreen();
+          });
+        });
+      }
+    }
+
+    // ==========================================
+    // SCREEN 3: INVESTMENTS, ACCOUNTS & CHARTS
+    // ==========================================
+    function renderAnalyticsScreen() {
+      const activeMonth = getActiveMonth();
+      const allInvestments = appState.ledger.filter(t => t.category === 'Investments');
+      const totalWealth = allInvestments.reduce((a, b) => a + b.amount, 0);
+      document.getElementById('totalInvestmentsBuiltVal').textContent = formatINR(totalWealth);
+
+      const invGrid = document.getElementById('investmentEntriesGrid');
+      if (allInvestments.length === 0) {
+        invGrid.innerHTML = `<div class="col-span-full text-xs text-[#E5D5C5]">No investment records logged yet.</div>`;
+      } else {
+        invGrid.innerHTML = allInvestments.map(inv => {
+          const mObj = appState.months.find(m => m.monthId === inv.monthId);
+          return `
+            <div class="p-3.5 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-bold uppercase text-emerald-300">${mObj ? mObj.displayName : inv.monthId}</div>
+                <div class="font-display font-bold text-xs text-white mt-0.5">${inv.description}</div>
+                <div class="text-[11px] text-[#E5D5C5]">${inv.accountTag} • ${inv.status}</div>
+              </div>
+              <div class="font-mono-num font-extrabold text-sm text-emerald-400">${formatINR(inv.amount)}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Bank & Card Outflow Matrix for Active Month
+      const monthLedger = activeMonth ? appState.ledger.filter(t => t.monthId === activeMonth.monthId) : [];
+      const bankCodes = ['BOI', 'KMB', 'PNB', 'slice', 'Cash'];
+      const matrixEl = document.getElementById('bankMatrixGrid');
+
+      matrixEl.innerHTML = bankCodes.map(code => {
+        const meta = ACCOUNT_META[code];
+        const accTxs = monthLedger.filter(t => t.accountTag === code);
+        const paidOut = accTxs.filter(t => t.status === 'PAID').reduce((a, b) => a + b.amount, 0);
+        const pendingOut = accTxs.filter(t => t.status === 'PENDING').reduce((a, b) => a + b.amount, 0);
+        const openBal = appState.accountWallets[code] || 0;
+
+        return `
+          <div class="neo-card-white rounded-2xl p-3.5 flex flex-col justify-between space-y-2">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold" style="background-color:${meta.bg}; color:${meta.text};">${meta.label}</span>
+                <span class="text-[10px] text-[#6E5041] font-semibold">${accTxs.length} txns</span>
+              </div>
+              <div class="text-xs font-bold text-[#23120B] mt-1.5">${meta.fullName}</div>
+            </div>
+
+            <div class="space-y-1 pt-2 border-t border-[#E5D5C5] text-[11px]">
+              <div class="flex justify-between">
+                <span class="text-[#6E5041]">Paid Outflow:</span>
+                <span class="font-mono-num font-bold text-[#23120B]">${formatINR(paidOut)}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[#6E5041]">Pending Dues:</span>
+                <span class="font-mono-num font-bold text-amber-700">${formatINR(pendingOut)}</span>
+              </div>
+              <div class="pt-1.5">
+                <label class="block text-[10px] text-[#6E5041] font-semibold">Total balance /- (₹):</label>
+                <input type="number" data-walletcode="${code}" value="${openBal}" class="wallet-bal-input mt-0.5 w-full px-2 py-1 rounded-lg bg-[#F7EFE6] border border-[#E5D5C5] font-mono-num text-xs font-bold text-[#23120B]" />
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      matrixEl.querySelectorAll('.wallet-bal-input').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const code = inp.getAttribute('data-walletcode');
+          appState.accountWallets[code] = parseFloat(inp.value) || 0;
+          saveState();
+          triggerHaptic('LIGHT_TICK', `${code} Balance Saved`);
+        });
+      });
+
+      renderCharts(monthLedger);
+    }
+
+    function renderCharts(monthLedger) {
+      // 1. Category Donut Chart
+      const catTotals = {};
+      monthLedger.forEach(t => {
+        catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+      });
+      const catLabels = Object.keys(catTotals);
+      const catValues = catLabels.map(k => catTotals[k]);
+      const catColors = catLabels.map(k => (CATEGORY_META[k] ? CATEGORY_META[k].iconColor : '#8B5A2B'));
+
+      const ctxDonut = document.getElementById('categoryDonutChart');
+      if (chartInstances.donut) chartInstances.donut.destroy();
+      chartInstances.donut = new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+          labels: catLabels.length ? catLabels : ['No Data'],
+          datasets: [{
+            data: catValues.length ? catValues : [1],
+            backgroundColor: catValues.length ? catColors : ['#E5D5C5'],
+            borderWidth: 2,
+            borderColor: '#FFFFFF'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+
+      // 2. Cross-Month Budget vs Actual Bar Chart
+      const mLabels = appState.months.map(m => m.displayName.split(' ')[0]);
+      const mBudgets = appState.months.map(m => m.totalBudget);
+      const mActuals = appState.months.map(m => {
+        return appState.ledger.filter(t => t.monthId === m.monthId).reduce((a, b) => a + b.amount, 0);
+      });
+
+      const ctxBar = document.getElementById('monthlyBarChart');
+      if (chartInstances.bar) chartInstances.bar.destroy();
+      chartInstances.bar = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: mLabels,
+          datasets: [
+            { label: 'Monthly Budget (₹)', data: mBudgets, backgroundColor: '#8B5A2B', borderRadius: 6 },
+            { label: 'Actual Expenses (₹)', data: mActuals, backgroundColor: '#2B1710', borderRadius: 6 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+
+      // 3. Fuel Liters & Spend Trendline
+      const fuelLitersSeries = appState.months.map(m => {
+        return +appState.fuelLogs.filter(f => f.monthId === m.monthId).reduce((a, b) => a + b.liters, 0).toFixed(2);
+      });
+      const fuelSpendSeries = appState.months.map(m => {
+        return +appState.fuelLogs.filter(f => f.monthId === m.monthId).reduce((a, b) => a + b.amount, 0).toFixed(2);
+      });
+
+      const ctxFuel = document.getElementById('fuelTrendChart');
+      if (chartInstances.fuel) chartInstances.fuel.destroy();
+      chartInstances.fuel = new Chart(ctxFuel, {
+        type: 'line',
+        data: {
+          labels: mLabels,
+          datasets: [
+            { label: 'Fuel Spend (₹)', data: fuelSpendSeries, borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.15)', fill: true, tension: 0.35 },
+            { label: 'Fuel Liters Logged (L)', data: fuelLitersSeries, borderColor: '#10B981', backgroundColor: '#10B981', tension: 0.35 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    // ==========================================
+    // MODAL HELPERS & FORM HANDLERS
+    // ==========================================
+    function openMonthModal(mode) {
+      const modal = document.getElementById('monthModal');
+      const modeInput = document.getElementById('monthFormMode');
+      const titleEl = document.getElementById('monthModalTitle');
+      const nameInput = document.getElementById('monthDisplayNameInput');
+      const budgetInput = document.getElementById('monthBudgetInput');
+      const fuelInput = document.getElementById('monthFuelAllocInput');
+      const pocketInput = document.getElementById('monthPocketAllocInput');
+      const cloneWrap = document.getElementById('cloneCommitmentsCheckWrap');
+
+      modeInput.value = mode;
+      const activeMonth = getActiveMonth();
+
+      if (mode === 'edit' && activeMonth) {
+        titleEl.textContent = `Edit ${activeMonth.displayName} Vault`;
+        nameInput.value = activeMonth.displayName;
+        budgetInput.value = activeMonth.totalBudget;
+        fuelInput.value = activeMonth.fuelBudgetAllocation || 1000;
+        pocketInput.value = activeMonth.pocketMoneyAllocation || 1000;
+        cloneWrap.classList.add('hidden');
+      } else {
+        titleEl.textContent = 'Create New Monthly Vault';
+        nameInput.value = appState.months.length === 0 ? 'October 2026' : 'December 2026';
+        budgetInput.value = 15000;
+        fuelInput.value = 1000;
+        pocketInput.value = 1200;
+        cloneWrap.classList.remove('hidden');
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function openExpenseModal(editId) {
+      const activeMonth = getActiveMonth();
+      if (!activeMonth) {
+        openMonthModal('create');
+        return;
+      }
+      const modal = document.getElementById('expenseModal');
+      const title = document.getElementById('expenseModalTitle');
+      const idInput = document.getElementById('expenseEditId');
+      const descInput = document.getElementById('expDescInput');
+      const amtInput = document.getElementById('expAmountInput');
+      const dateInput = document.getElementById('expDateInput');
+      const catSelect = document.getElementById('expCatSelect');
+      const accSelect = document.getElementById('expAccSelect');
+      const statusSelect = document.getElementById('expStatusSelect');
+      const notesInput = document.getElementById('expNotesInput');
+
+      if (editId) {
+        const tx = appState.ledger.find(t => t.id === editId);
+        if (!tx) return;
+        title.textContent = '✏️ Edit Ledger Transaction';
+        idInput.value = tx.id;
+        descInput.value = tx.description;
+        amtInput.value = tx.amount;
+        dateInput.value = tx.createdAtDate;
+        catSelect.value = tx.category;
+        accSelect.value = tx.accountTag;
+        statusSelect.value = tx.status;
+        notesInput.value = tx.notes || '';
+      } else {
+        title.textContent = '+ Add Main Ledger Expense';
+        idInput.value = '';
+        descInput.value = '';
+        amtInput.value = '';
+        dateInput.value = `${activeMonth.monthId}-10`;
+        catSelect.value = 'Utilities & Bills';
+        accSelect.value = 'KMB';
+        statusSelect.value = 'PAID';
+        notesInput.value = '';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    // ==========================================
+    // EXPORT ENGINE (.XLSX, PDF, JSON)
+    // ==========================================
+    function exportFormattedExcel() {
+      if (appState.months.length === 0) {
+        triggerHaptic('HEAVY_WARNING', 'No Months to Export');
+        return;
+      }
+      const wb = XLSX.utils.book_new();
+      appState.months.forEach(m => {
+        const mLedger = appState.ledger.filter(t => t.monthId === m.monthId);
+        const mFuel = appState.fuelLogs.filter(f => f.monthId === m.monthId);
+        const mPocket = appState.pocketLogs.filter(p => p.monthId === m.monthId);
+        const rows = [
+          [m.displayName + ' — Managing Expenses by Cocoa'],
+          ['Monthly Budget', m.totalBudget],
+          [],
+          ['Sn no.', 'Description', 'Category', 'Amount', 'Status', 'ON ACC', 'Date', 'Notes']
+        ];
+        mLedger.forEach(tx => {
+          rows.push([tx.serialNo, tx.description, tx.category, tx.amount, tx.status, tx.accountTag, tx.createdAtDate, tx.notes]);
+        });
+        rows.push([]);
+        rows.push(['FUEL LOGS (DATE)', 'LITERS (L)', 'AMOUNT (INR)', 'NOTE']);
+        mFuel.forEach(f => rows.push([f.date, f.liters, f.amount, f.vehicleNote]));
+        rows.push([]);
+        rows.push(['POCKET MONEY (DATE)', 'ITEM DESCRIPTION', 'AMOUNT (INR)']);
+        mPocket.forEach(p => rows.push([p.date, p.itemDescription, p.amount]));
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, m.displayName.slice(0, 30));
+      });
+      XLSX.writeFile(wb, 'Cocoa_Monthly_Vaults_Export.xlsx');
+      triggerHaptic('MEDIUM_CONFIRM', 'Exported .xlsx Workbook');
+    }
+
+    function exportMonthlyStatementPdf() {
+      const activeMonth = getActiveMonth();
+      if (!activeMonth) {
+        triggerHaptic('HEAVY_WARNING', 'No Active Month for PDF');
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const mLedger = appState.ledger.filter(t => t.monthId === activeMonth.monthId);
+      const totalSpent = mLedger.reduce((a, b) => a + b.amount, 0);
+      const rem = activeMonth.totalBudget - totalSpent;
+
+      doc.setFontSize(18);
+      doc.text('Cocoa — Managing Expenses by Cocoa', 14, 18);
+      doc.setFontSize(12);
+      doc.text(`Official Offline Monthly Statement: ${activeMonth.displayName}`, 14, 26);
+      doc.setFontSize(10);
+      doc.text(`Budget: INR ${activeMonth.totalBudget.toFixed(2)}  |  Total Spent: INR ${totalSpent.toFixed(2)}  |  Remaining: INR ${rem.toFixed(2)}`, 14, 34);
+
+      let y = 45;
+      doc.setFontSize(9);
+      doc.text('#   Description                        Category                Account    Status     Amount (INR)', 14, y);
+      y += 6;
+      mLedger.forEach(tx => {
+        if (y > 275) {
+          doc.addPage();
+          y = 20;
+        }
+        const line = `${String(tx.serialNo).padEnd(3)} ${tx.description.slice(0, 32).padEnd(34)} ${tx.category.slice(0, 22).padEnd(23)} ${tx.accountTag.padEnd(10)} ${tx.status.padEnd(10)} ${tx.amount.toFixed(2)}`;
+        doc.text(line, 14, y);
+        y += 6;
+      });
+
+      doc.save(`Cocoa_Statement_${activeMonth.monthId}.pdf`);
+      triggerHaptic('MEDIUM_CONFIRM', 'Exported PDF Statement');
+    }
+
+    function exportJsonSnapshot() {
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute('href', dataStr);
+      a.setAttribute('download', 'cocoa_offline_vault_backup.json');
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      triggerHaptic('MEDIUM_CONFIRM', 'Exported JSON Snapshot');
+    }
+
+    // ==========================================
+    // WIRE ALL EVENT LISTENERS ON LOAD
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+
+      // Onboarding checkboxes & buttons
+      const legalCheck = document.getElementById('legalCheckInput');
+      const enterVaultBtn = document.getElementById('enterCocoaVaultBtn');
+      if (legalCheck && enterVaultBtn) {
+        legalCheck.addEventListener('change', () => {
+          triggerHaptic('LIGHT_TICK');
+          if (legalCheck.checked) {
+            enterVaultBtn.disabled = false;
+            enterVaultBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          } else {
+            enterVaultBtn.disabled = true;
+            enterVaultBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          }
+        });
+
+        enterVaultBtn.addEventListener('click', () => {
+          if (!legalCheck.checked) return;
+          appState.legalAccepted = true;
+          saveState();
+          triggerHaptic('MEDIUM_CONFIRM', 'Haptic: CONFIRM (Welcome to Cocoa)');
+          renderApp();
+        });
+      }
+
+      const openLegalOnboardBtn = document.getElementById('openLegalFromOnboardBtn');
+      if (openLegalOnboardBtn) {
+        openLegalOnboardBtn.addEventListener('click', () => {
+          appState.legalAccepted = true;
+          appState.activeTab = 'settings';
+          saveState();
+          renderApp();
+        });
+      }
+
+      // Haptics toggle
+      document.getElementById('toggleAudioHapticsBtn').addEventListener('click', () => {
+        appState.hapticsEnabled = !appState.hapticsEnabled;
+        saveState();
+        if (appState.hapticsEnabled) triggerHaptic('LIGHT_TICK', 'Haptics Enabled');
+        renderApp();
+      });
+
+      // Bottom navigation
+      document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.activeTab = btn.getAttribute('data-tab');
+          saveState();
+          triggerHaptic('LIGHT_TICK', `Tab: ${appState.activeTab}`);
+          renderApp();
+        });
+      });
+
+      // Timeline sub-tabs
+      document.querySelectorAll('.tl-subtab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.activeTimelineSubTab = btn.getAttribute('data-subtab');
+          saveState();
+          triggerHaptic('LIGHT_TICK', `Timeline: ${appState.activeTimelineSubTab}`);
+          renderTimelinesScreen();
+        });
+      });
+
+      // Empty state buttons
+      document.getElementById('emptyCreateFirstMonthBtn').addEventListener('click', () => openMonthModal('create'));
+      document.getElementById('emptyRunSampleImportBtn').addEventListener('click', () => {
+        const wb = generateInBrowserSampleWorkbook();
+        const preview = parseExcelWorkbookToPreview(wb);
+        openImportPreviewModal(preview);
+      });
+      document.getElementById('testWorkbookImportBtn').addEventListener('click', () => {
+        const wb = generateInBrowserSampleWorkbook();
+        const preview = parseExcelWorkbookToPreview(wb);
+        openImportPreviewModal(preview);
+      });
+
+      // Real .xlsx File Input Upload
+      document.getElementById('excelFileInput').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const preview = parseExcelWorkbookToPreview(workbook);
+            openImportPreviewModal(preview);
+          } catch (err) {
+            triggerHaptic('HEAVY_WARNING', 'Invalid .xlsx File');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+        e.target.value = '';
+      });
+
+      // Import Preview Modal actions
+      document.getElementById('closeImportPreviewBtn').addEventListener('click', () => {
+        document.getElementById('importPreviewModal').classList.add('hidden');
+        document.getElementById('importPreviewModal').classList.remove('flex');
+      });
+      document.getElementById('cancelImportBtn').addEventListener('click', () => {
+        document.getElementById('importPreviewModal').classList.add('hidden');
+        document.getElementById('importPreviewModal').classList.remove('flex');
+      });
+      document.getElementById('confirmImportBtn').addEventListener('click', commitExcelImportPreview);
+
+      // Month Modal actions
+      document.getElementById('editBudgetBtn').addEventListener('click', () => openMonthModal('edit'));
+      document.getElementById('closeMonthModalBtn').addEventListener('click', () => {
+        document.getElementById('monthModal').classList.add('hidden');
+        document.getElementById('monthModal').classList.remove('flex');
+      });
+      document.getElementById('cancelMonthModalBtn').addEventListener('click', () => {
+        document.getElementById('monthModal').classList.add('hidden');
+        document.getElementById('monthModal').classList.remove('flex');
+      });
+
+      document.getElementById('monthForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const mode = document.getElementById('monthFormMode').value;
+        const name = document.getElementById('monthDisplayNameInput').value.trim();
+        const budget = parseFloat(document.getElementById('monthBudgetInput').value) || 15000;
+        const fuelAlloc = parseFloat(document.getElementById('monthFuelAllocInput').value) || 1000;
+        const pocketAlloc = parseFloat(document.getElementById('monthPocketAllocInput').value) || 1000;
+
+        if (mode === 'edit') {
+          const activeMonth = getActiveMonth();
+          if (activeMonth) {
+            activeMonth.displayName = name;
+            activeMonth.totalBudget = budget;
+            activeMonth.fuelBudgetAllocation = fuelAlloc;
+            activeMonth.pocketMoneyAllocation = pocketAlloc;
+          }
+        } else {
+          const resolved = resolveMonthFromTabName(name, appState.months.length);
+          const mId = `${resolved.monthId}_${Date.now().toString().slice(-3)}`;
+          appState.months.push({
+            monthId: mId,
+            displayName: name,
+            totalBudget: budget,
+            fuelBudgetAllocation: fuelAlloc,
+            pocketMoneyAllocation: pocketAlloc
+          });
+          appState.selectedMonthId = mId;
+          if (document.getElementById('monthCloneCommitmentsCheck').checked) {
+            cloneRecurringToMonth(mId);
+          }
+        }
+
+        document.getElementById('monthModal').classList.add('hidden');
+        document.getElementById('monthModal').classList.remove('flex');
+        saveState();
+        triggerHaptic('MEDIUM_CONFIRM', 'Monthly Vault Saved');
+        renderApp();
+      });
+
+      // Expense Modal actions
+      document.getElementById('openAddExpenseModalBtn').addEventListener('click', () => openExpenseModal(null));
+      document.getElementById('closeExpenseModalBtn').addEventListener('click', () => {
+        document.getElementById('expenseModal').classList.add('hidden');
+        document.getElementById('expenseModal').classList.remove('flex');
+      });
+      document.getElementById('cancelExpenseModalBtn').addEventListener('click', () => {
+        document.getElementById('expenseModal').classList.add('hidden');
+        document.getElementById('expenseModal').classList.remove('flex');
+      });
+
+      document.getElementById('expenseForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const activeMonth = getActiveMonth();
+        if (!activeMonth) return;
+
+        const editId = document.getElementById('expenseEditId').value;
+        const desc = document.getElementById('expDescInput').value.trim();
+        const amt = parseFloat(document.getElementById('expAmountInput').value) || 0;
+        const date = document.getElementById('expDateInput').value;
+        const cat = document.getElementById('expCatSelect').value;
+        const acc = document.getElementById('expAccSelect').value;
+        const status = document.getElementById('expStatusSelect').value;
+        const notes = document.getElementById('expNotesInput').value.trim();
+
+        let anchor = 'NONE';
+        if (desc.toLowerCase() === 'fuel') anchor = 'FUEL_ANCHOR';
+        else if (desc.toLowerCase().includes('pocket money')) anchor = 'POCKET_MONEY_ANCHOR';
+
+        if (editId) {
+          const tx = appState.ledger.find(t => t.id === editId);
+          if (tx) {
+            tx.description = desc;
+            tx.amount = amt;
+            tx.createdAtDate = date;
+            tx.category = cat;
+            tx.accountTag = acc;
+            tx.status = status;
+            tx.notes = notes;
+            tx.isSubBudgetAnchor = anchor;
+          }
+        } else {
+          const mCount = appState.ledger.filter(t => t.monthId === activeMonth.monthId).length;
+          appState.ledger.push({
+            id: `tx_${activeMonth.monthId}_${Date.now()}`,
+            monthId: activeMonth.monthId,
+            serialNo: mCount + 1,
+            description: desc,
+            category: cat,
+            amount: amt,
+            status,
+            accountTag: acc,
+            createdAtDate: date,
+            notes,
+            isSubBudgetAnchor: anchor
+          });
+        }
+
+        // Check if budget is exceeded to trigger Heavy Warning haptic
+        const newTotal = appState.ledger.filter(t => t.monthId === activeMonth.monthId).reduce((a, b) => a + b.amount, 0);
+        if (newTotal > activeMonth.totalBudget) {
+          triggerHaptic('HEAVY_WARNING', `Haptic: REJECT (Over Budget by ${formatINR(newTotal - activeMonth.totalBudget)})`);
+        } else {
+          triggerHaptic('MEDIUM_CONFIRM', 'Haptic: CONFIRM (Expense Saved)');
+        }
+
+        document.getElementById('expenseModal').classList.add('hidden');
+        document.getElementById('expenseModal').classList.remove('flex');
+        saveState();
+        renderApp();
+      });
+
+      // Search input
+      document.getElementById('ledgerSearchInput').addEventListener('input', (e) => {
+        appState.searchQuery = e.target.value;
+        renderMonthlyVaultScreen();
+      });
+
+      // Fuel Gauge & Modal actions
+      const openFuelFn = () => {
+        const activeMonth = getActiveMonth();
+        if (!activeMonth) return;
+        document.getElementById('fuelLitersInput').value = '';
+        document.getElementById('fuelAmountInput').value = '';
+        document.getElementById('fuelDateInput').value = `${activeMonth.monthId}-12`;
+        document.getElementById('fuelModal').classList.remove('hidden');
+        document.getElementById('fuelModal').classList.add('flex');
+      };
+      document.getElementById('quickLogFuelBtn').addEventListener('click', openFuelFn);
+      document.getElementById('tlAddFuelBtn').addEventListener('click', openFuelFn);
+      document.getElementById('jumpToFuelTimelineBtn').addEventListener('click', () => {
+        appState.activeTab = 'timelines';
+        appState.activeTimelineSubTab = 'fuel';
+        saveState();
+        triggerHaptic('LIGHT_TICK', 'Fuel Sub-Ledger');
+        renderApp();
+      });
+      document.getElementById('closeFuelModalBtn').addEventListener('click', () => {
+        document.getElementById('fuelModal').classList.add('hidden');
+        document.getElementById('fuelModal').classList.remove('flex');
+      });
+      document.getElementById('cancelFuelModalBtn').addEventListener('click', () => {
+        document.getElementById('fuelModal').classList.add('hidden');
+        document.getElementById('fuelModal').classList.remove('flex');
+      });
+      document.getElementById('fuelForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const activeMonth = getActiveMonth();
+        if (!activeMonth) return;
+        const liters = parseFloat(document.getElementById('fuelLitersInput').value) || 0;
+        const amount = parseFloat(document.getElementById('fuelAmountInput').value) || 0;
+        const date = document.getElementById('fuelDateInput').value;
+        const vehicleNote = document.getElementById('fuelNoteInput').value.trim() || 'Petrol';
+
+        appState.fuelLogs.push({
+          id: `fuel_${activeMonth.monthId}_${Date.now()}`,
+          monthId: activeMonth.monthId,
+          date,
+          liters,
+          amount,
+          pricePerLiter: liters > 0 ? +(amount / liters).toFixed(2) : 0,
+          vehicleNote
+        });
+
+        const totalFuelSpent = appState.fuelLogs.filter(f => f.monthId === activeMonth.monthId).reduce((a, b) => a + b.amount, 0);
+        if (totalFuelSpent > (activeMonth.fuelBudgetAllocation || 1000)) {
+          triggerHaptic('HEAVY_WARNING', 'Haptic: REJECT (Fuel Sub-Budget Exceeded!)');
+        } else {
+          triggerHaptic('MEDIUM_CONFIRM', 'Haptic: CONFIRM (Fuel Refill Logged)');
+        }
+
+        document.getElementById('fuelModal').classList.add('hidden');
+        document.getElementById('fuelModal').classList.remove('flex');
+        saveState();
+        renderApp();
+      });
+
+      // Pocket Money Gauge & Modal actions
+      const openPocketFn = () => {
+        const activeMonth = getActiveMonth();
+        if (!activeMonth) return;
+        document.getElementById('pocketDescInput').value = '';
+        document.getElementById('pocketAmtInput').value = '';
+        document.getElementById('pocketDateInput').value = `${activeMonth.monthId}-14`;
+        document.getElementById('pocketModal').classList.remove('hidden');
+        document.getElementById('pocketModal').classList.add('flex');
+      };
+      document.getElementById('quickSpendPocketBtn').addEventListener('click', openPocketFn);
+      document.getElementById('tlAddPocketBtn').addEventListener('click', openPocketFn);
+      document.getElementById('jumpToPocketTimelineBtn').addEventListener('click', () => {
+        appState.activeTab = 'timelines';
+        appState.activeTimelineSubTab = 'pocket';
+        saveState();
+        triggerHaptic('LIGHT_TICK', 'Pocket Money Ledger');
+        renderApp();
+      });
+      document.getElementById('closePocketModalBtn').addEventListener('click', () => {
+        document.getElementById('pocketModal').classList.add('hidden');
+        document.getElementById('pocketModal').classList.remove('flex');
+      });
+      document.getElementById('cancelPocketModalBtn').addEventListener('click', () => {
+        document.getElementById('pocketModal').classList.add('hidden');
+        document.getElementById('pocketModal').classList.remove('flex');
+      });
+      document.getElementById('pocketForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const activeMonth = getActiveMonth();
+        if (!activeMonth) return;
+        const itemDescription = document.getElementById('pocketDescInput').value.trim();
+        const amount = parseFloat(document.getElementById('pocketAmtInput').value) || 0;
+        const date = document.getElementById('pocketDateInput').value;
+
+        appState.pocketLogs.push({
+          id: `pm_${activeMonth.monthId}_${Date.now()}`,
+          monthId: activeMonth.monthId,
+          date,
+          itemDescription,
+          amount
+        });
+
+        triggerHaptic('MEDIUM_CONFIRM', 'Pocket Micro-Spend Logged');
+        document.getElementById('pocketModal').classList.add('hidden');
+        document.getElementById('pocketModal').classList.remove('flex');
+        saveState();
+        renderApp();
+      });
+
+      // People / Split Repayment Modal actions
+      document.getElementById('tlAddPeopleBtn').addEventListener('click', () => {
+        const activeMonth = getActiveMonth();
+        if (!activeMonth) return;
+        document.getElementById('peopleNameInput').value = '';
+        document.getElementById('peopleAmtInput').value = '';
+        document.getElementById('peopleDateInput').value = `${activeMonth.monthId}-18`;
+        document.getElementById('peopleBreakdownInput').value = '';
+        document.getElementById('peopleModal').classList.remove('hidden');
+        document.getElementById('peopleModal').classList.add('flex');
+      });
+      document.getElementById('closePeopleModalBtn').addEventListener('click', () => {
+        document.getElementById('peopleModal').classList.add('hidden');
+        document.getElementById('peopleModal').classList.remove('flex');
+      });
+      document.getElementById('cancelPeopleModalBtn').addEventListener('click', () => {
+        document.getElementById('peopleModal').classList.add('hidden');
+        document.getElementById('peopleModal').classList.remove('flex');
+      });
+      document.getElementById('peopleForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const activeMonth = getActiveMonth();
+        if (!activeMonth) return;
+        const personOrTitle = document.getElementById('peopleNameInput').value.trim();
+        const amount = parseFloat(document.getElementById('peopleAmtInput').value) || 0;
+        const type = document.getElementById('peopleTypeSelect').value;
+        const date = document.getElementById('peopleDateInput').value;
+        const breakdownNotes = document.getElementById('peopleBreakdownInput').value.trim();
+
+        appState.peopleLogs.push({
+          id: `ppl_${activeMonth.monthId}_${Date.now()}`,
+          monthId: activeMonth.monthId,
+          date,
+          personOrTitle,
+          type,
+          amount,
+          breakdownNotes,
+          isSettled: false
+        });
+
+        triggerHaptic('MEDIUM_CONFIRM', 'People / Split Repayment Saved');
+        document.getElementById('peopleModal').classList.add('hidden');
+        document.getElementById('peopleModal').classList.remove('flex');
+        saveState();
+        renderApp();
+      });
+
+      // Settings Screen Actions
+      document.getElementById('cloneRecurringBtn').addEventListener('click', () => {
+        const activeMonth = getActiveMonth();
+        if (!activeMonth) {
+          openMonthModal('create');
+          return;
+        }
+        cloneRecurringToMonth(activeMonth.monthId);
+        saveState();
+        triggerHaptic('MEDIUM_CONFIRM', `Cloned Commitments to ${activeMonth.displayName}`);
+        appState.activeTab = 'vault';
+        renderApp();
+      });
+
+      document.getElementById('exportXlsxBtn').addEventListener('click', exportFormattedExcel);
+      document.getElementById('exportPdfBtn').addEventListener('click', exportMonthlyStatementPdf);
+      document.getElementById('exportJsonBtn').addEventListener('click', exportJsonSnapshot);
+
+      document.getElementById('resetAllDataBtn').addEventListener('click', () => {
+        triggerHaptic('HEAVY_WARNING', 'Haptic: REJECT (Confirm Vault Wipe)');
+        document.getElementById('resetConfirmModal').classList.remove('hidden');
+        document.getElementById('resetConfirmModal').classList.add('flex');
+      });
+      document.getElementById('cancelResetBtn').addEventListener('click', () => {
+        document.getElementById('resetConfirmModal').classList.add('hidden');
+        document.getElementById('resetConfirmModal').classList.remove('flex');
+      });
+      document.getElementById('confirmResetAllBtn').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        appState = createCleanEmptyState();
+        appState.legalAccepted = true;
+        saveState();
+        document.getElementById('resetConfirmModal').classList.add('hidden');
+        document.getElementById('resetConfirmModal').classList.remove('flex');
+        triggerHaptic('HEAVY_WARNING', 'Vault Wiped Clean');
+        renderApp();
+      });
+
+      renderApp();
+    });
+  </script>
+</body>
+</html>
